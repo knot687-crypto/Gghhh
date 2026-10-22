@@ -1,0 +1,19 @@
+{
+  "name": "aaa-motion-tools",
+  "private": true,
+  "type": "module",
+  "description": "Authoring, build and preview tooling for the AAA Motion Roblox animation pack",
+  "scripts": {
+    "build": "node anim/build.mjs",
+    "export": "node anim/export-luau.mjs && node anim/export-rbxmx.mjs",
+    "sheet": "node preview/sheet.mjs",
+    "render": "node preview/render.mjs",
+    "textures": "node preview/export-textures.mjs",
+    "test": "node test/parity.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/rajdhani": "^5.3.0",
+    "playwright-core": "1.56.1",
+    "three": "0.170.0"
+  }
+}

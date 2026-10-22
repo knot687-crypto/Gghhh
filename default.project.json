@@ -1,0 +1,55 @@
+{
+  "name": "AAAMotion",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "AAAMotion": {
+        "$path": "src/ReplicatedStorage/AAAMotion"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "AAAMotionServer": {
+        "$path": "src/ServerScriptService/AAAMotionServer"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$properties": {
+        "EnableMouseLockOption": false,
+        "CharacterUseJumpPower": true,
+        "CharacterJumpPower": 54,
+        "CharacterWalkSpeed": 16,
+        "CameraMaxZoomDistance": 22
+      },
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "AAAMotionClient": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/AAAMotionClient"
+        }
+      },
+      "StarterCharacterScripts": {
+        "$className": "StarterCharacterScripts",
+        "Animate": {
+          "$path": "src/StarterPlayer/StarterCharacterScripts/Animate.client.luau"
+        }
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Technology": "Future",
+        "ClockTime": 17.6,
+        "Brightness": 2.6,
+        "GlobalShadows": true
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": {
+        "Gravity": 196.2
+      }
+    }
+  }
+}

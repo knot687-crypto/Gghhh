@@ -1,0 +1,2 @@
+-- Replaces Roblox's default "Animate" script: AAA Motion animates every character procedurally
+-- (Motor6D.Transform written by the client runtime), so no stock AnimationTracks should play.

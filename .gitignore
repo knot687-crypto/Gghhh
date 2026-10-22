@@ -1,0 +1,18 @@
+# Tooling
+tools/node_modules/
+# Build outputs (clips.json is kept so the preview and tests run without a rebuild)
+tools/build/*
+!tools/build/clips.json
+
+# Rendered showcase videos are large; they are delivered separately.
+media/*.mp4
+
+# Local Rojo builds (the shipped place/model live in export/)
+/*.rbxl
+/*.rbxlx
+/*.rbxm
+
+# Test host build (tools/test/luaurun/build.sh)
+tools/test/luaurun/luau/
+tools/test/luaurun/obj/
+tools/test/luaurun/luaurun
