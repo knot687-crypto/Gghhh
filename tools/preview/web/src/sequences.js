@@ -137,7 +137,7 @@ function movement(app) {
   S.at(27.15, () => hero.move(F, 26));
   S.at(27.55, () => hero.jump());
   S.at(27.75, () => hero.wallRun('Left', wallX, { dir: F }));
-  S.caption(27.6, 'WALL RUN', 'Body tilts off the wall  ·  feet strike the wall plane', 2.4);
+  S.caption(27.6, 'WALL RUN', 'Body tilts off the wall  ·  feet strike the wall plane', 1.5);
   S.at(29.05, () => hero.wallJump());
   S.prompt(29.05, 'SPACE', 'Wall jump', 1.2);
   S.caption(29.1, 'WALL JUMP', 'Kick-off twist into the air', 1.8);
@@ -308,7 +308,7 @@ function combat(app) {
     place(d1, 40, -125, 180);
   });
   S.shot(30.4, { type: 'track', actor: hero, pos: [47, 2.6, -117], look: [0, 0.2, -2.5], fov: 42 });
-  S.caption(30.5, 'HIT REACTIONS', 'Directional flinches  ·  hit-stop  ·  impact flash', 3.4);
+  S.caption(30.5, 'HIT REACTIONS', 'Directional flinches  ·  hit-stop  ·  impact flash', 3.2);
   S.at(30.6, () => hero.attack('Light2'));
   S.at(31.5, () => {
     d1.yaw = Math.PI / 2;
