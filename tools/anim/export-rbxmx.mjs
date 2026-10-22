@@ -22,7 +22,7 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const OUT = path.resolve(ROOT, '../export');
 const clips = JSON.parse(fs.readFileSync(path.join(ROOT, 'build/clips.json'), 'utf8'));
 
-const RATE = 120;
+const RATE = 480;
 const TOL_ROT = (0.3 * Math.PI) / 180;
 const TOL_POS = 0.004;
 const ADDITIVE_BASE = { HitFront: 'CombatIdle', HitBack: 'CombatIdle', HitLeft: 'CombatIdle', HitRight: 'CombatIdle', LandLight: 'Idle', FP_Land: 'FP_Idle' };
@@ -122,13 +122,15 @@ function poseXml(name, xf, weight, children, indent) {
 function sequenceXml(clip, rig) {
   const jointNames = rig.joints.map((j) => j.name);
   const L = clip.length;
-  const samples = [];
+  // Uniform grid plus every authored key time, so sharp corners land exactly on a sample.
+  const grid = new Set();
   const steps = Math.max(1, Math.ceil(L * RATE));
-  for (let k = 0; k <= steps; k++) {
-    const t = Math.min((k / steps) * L, L);
+  for (let k = 0; k <= steps; k++) grid.add(+Math.min((k / steps) * L, L).toFixed(6));
+  for (const chans of Object.values(clip.tracks)) for (const ch of Object.values(chans)) for (const t of ch.t) if (t >= 0 && t <= L) grid.add(+t.toFixed(6));
+  const samples = [...grid]
+    .sort((a, b) => a - b)
     // A loop's last key must equal its first so Roblox wraps seamlessly.
-    samples.push({ t, pose: poseAt(clip, clip.loop && k === steps ? 0 : t, jointNames) });
-  }
+    .map((t) => ({ t, pose: poseAt(clip, clip.loop && Math.abs(t - L) < 1e-9 ? 0 : t, jointNames) }));
   const times = new Set(reduceKeys(samples, jointNames).map((t) => +t.toFixed(5)));
   const markers = (clip.markers ?? []).filter((m) => m.t <= L + 1e-6);
   for (const m of markers) times.add(+m.t.toFixed(5));

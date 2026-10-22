@@ -105,6 +105,48 @@ export class Pose {
 
 export const pose = (joints) => new Pose(joints);
 
+// Euler filter: IK solves every key independently, so a key can come out as a different but
+// equivalent angle triple (wrapped by 360 deg, or the alternate XYZ solution
+// (rx + 180, 180 - ry, rz + 180)). Interpolating channels between such keys spins the joint the
+// long way round. Re-express each rotation key as the equivalent triple closest to the previous
+// key; key orientations are unchanged, only the in-betweens take the short path.
+function closestEuler(prev, r) {
+  let best = null;
+  let bestD = Infinity;
+  for (const c of [r, [r[0] + 180, 180 - r[1], r[2] + 180]]) {
+    const w = c.map((v, i) => v + 360 * Math.round((prev[i] - v) / 360));
+    const d = (w[0] - prev[0]) ** 2 + (w[1] - prev[1]) ** 2 + (w[2] - prev[2]) ** 2;
+    if (d < bestD - 1e-9) {
+      bestD = d;
+      best = w;
+    }
+  }
+  return best;
+}
+
+function eulerFilter(chans, length, loop) {
+  // Same time normalisation and de-duplication compileChannel applies (last key at a time wins).
+  const byTime = new Map();
+  chans.rx.forEach((k, i) => {
+    let t = k.t;
+    if (loop) {
+      t = ((t % length) + length) % length;
+      if (length - t < 1e-6) t = 0;
+    } else t = Math.min(Math.max(t, 0), length);
+    const key = Math.round(t * 1e5) / 1e5;
+    byTime.set(key, { t: key, r: [chans.rx[i].v, chans.ry[i].v, chans.rz[i].v], e: [chans.rx[i].e, chans.ry[i].e, chans.rz[i].e] });
+  });
+  const keys = [...byTime.values()].sort((a, b) => a.t - b.t);
+  for (let i = 1; i < keys.length; i++) keys[i].r = closestEuler(keys[i - 1].r, keys[i].r);
+  if (loop && keys.length > 1) {
+    // The cycle must close on itself: if the last key needs a different triple to reach the
+    // first one, keep the original keys rather than create a jump at the seam.
+    const wrap = closestEuler(keys[keys.length - 1].r, keys[0].r);
+    if (wrap.some((v, i) => Math.abs(v - keys[0].r[i]) > 1e-6)) return;
+  }
+  for (let i = 0; i < 3; i++) chans[CH[i]] = keys.map((k) => ({ t: k.t, v: k.r[i], e: k.e[i] }));
+}
+
 class ClipBuilder {
   constructor(name, opts) {
     this.name = name;
@@ -139,6 +181,7 @@ class ClipBuilder {
         }
       }
     }
+    for (const chans of Object.values(raw)) eulerFilter(chans, length, loop);
     const tracks = {};
     for (const [joint, chans] of Object.entries(raw)) {
       tracks[joint] = {};

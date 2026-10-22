@@ -128,6 +128,9 @@ Rendering uses headless Chromium + three.js + ffmpeg; `render.mjs` writes finish
   rendered the videos — 3,840 joint samples over a 12 s scripted sequence (locomotion blends,
   jumps, dash, combo with hit-stop, overlays, charge/release, block, flinch, vault) agree within
   0.0002° and 0.00005 studs, with an identical marker/event stream. Hit geometry checks pass.
+* KeyframeSequence export round trip (parse the exported sequences, interpolate like Roblox,
+  compare with the source curves): within 0.005 studs everywhere and within 1.7° even at the
+  fastest one-frame strike.
 * `rojo build` produces the place and model files.
 * Not yet play-tested inside Roblox Studio itself (no Studio in the build environment) — the
   movement physics, network relay and effect visuals have only been checked statically. Expect to
