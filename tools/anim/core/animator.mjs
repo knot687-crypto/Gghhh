@@ -99,6 +99,10 @@ export class Animator {
   update(dt) {
     const sdt = dt * this.timeScale;
     for (const tr of this.tracks) {
+      // A playing track's first update also fires markers sitting exactly on its start time
+      // (Land, DashStart, SwingStart at 0 ...).
+      const fresh = !tr.started;
+      tr.started = true;
       tr.prevTime = tr.time;
       tr.time += sdt * tr.speed;
       const L = tr.clip.length;
@@ -117,7 +121,8 @@ export class Animator {
       } else if (!tr.hold && !tr.stopping && tr.time >= L - tr.fadeOut && tr.speed > 0) {
         tr.stop(Math.max(L - tr.time, 0.0001) / Math.max(tr.speed, 1e-3));
       }
-      for (const m of tr.clip.markers) if (m.t > tr.prevTime && m.t <= tr.time) this.fire(tr, m);
+      const from = fresh && tr.speed > 0 ? tr.prevTime - 1e-9 : tr.prevTime;
+      for (const m of tr.clip.markers) if (m.t > from && m.t <= tr.time) this.fire(tr, m);
     }
     for (const tr of this.tracks) {
       if (tr.weight !== tr.targetWeight) {

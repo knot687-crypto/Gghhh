@@ -17,6 +17,7 @@ local rng = Random.new(99)
 local shakes = {}
 local kicks = {}
 local impact = 0
+local impactCooldown = 0
 local flashV = 0
 local flashColor = Color3.new(1, 1, 1)
 local slow: { scale: number, dur: number, age: number }? = nil
@@ -53,9 +54,14 @@ function CameraFX.fovKick(deg: number, dur: number?)
 	table.insert(kicks, { deg = deg, dur = dur or 0.3, age = 0 })
 end
 
--- Anime-style impact frame: a few frames of stark high-contrast monochrome.
+-- Anime-style impact frame: a few frames of stark high-contrast monochrome. One per strike:
+-- hits landing in the same beat don't re-trigger it.
 function CameraFX.impactFrame(dur: number)
+	if impactCooldown > 0 and impact <= 0 then
+		return
+	end
 	impact = math.max(impact, dur)
+	impactCooldown = dur + 0.35
 end
 
 function CameraFX.flash(strength: number, color: string?)
@@ -131,6 +137,7 @@ function CameraFX.update(dt: number): (CFrame, number)
 		end
 	end
 	impact = math.max(0, impact - dt)
+	impactCooldown = math.max(0, impactCooldown - dt)
 	flashV = math.max(0, flashV - dt * 3.2)
 	return CFrame.new(ox, oy, 0) * CFrame.Angles(rx, 0, rz), fov
 end

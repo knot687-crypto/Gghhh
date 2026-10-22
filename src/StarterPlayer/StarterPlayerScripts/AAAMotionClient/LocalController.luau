@@ -468,6 +468,7 @@ function LocalController:slideJump()
 	local s = self.slideState
 	self:endSlide()
 	self:setCrouch(false)
+	self.humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
 	self.root.AssemblyLinearVelocity = s.dir * math.max(s.speed, MOVE.sprintSpeed) + Y * MOVE.jumpVelocity
 	self:setMode("Air")
 	self.jumps = 1
@@ -775,6 +776,8 @@ function LocalController:endAction(interrupted: boolean)
 		self.motor:freeFacing()
 		local grounded = self.humanoid.FloorMaterial ~= Enum.Material.Air
 		self:setMode(if grounded or not a.physics then "Ground" else "Air")
+		self.minAirVy = 0
+		self.airTime = 0.1
 		if self.blockQueued then
 			self.blockQueued = false
 			self:setBlock(true)
@@ -1154,13 +1157,21 @@ function LocalController:onHitResult(info)
 		self:stagger("GuardBreak")
 	elseif r == "hit" then
 		self.stunT = info.stun or 0.4
-		if info.push and info.push > 0 and self.mode == "Ground" then
-			self.root.AssemblyLinearVelocity += flat(info.dir or Vector3.zero) * info.push
-		end
+		-- Hit-stun interrupts our own wind-up or swing (the server already cancelled it).
 		if self.mode == "Charge" then
 			self.chargeState = nil
 			self.driver.glowTarget = 0.35
+			self.motor:release()
+			self:stopReplicated(0.1)
 			self:setMode("Ground")
+		elseif self.mode == "Action" and self.attack then
+			self:endAction(true)
+			self:stopReplicated(0.1)
+			self.motor:freeFacing()
+			self:setMode("Ground")
+		end
+		if info.push and info.push > 0 and self.mode == "Ground" then
+			self.root.AssemblyLinearVelocity += flat(info.dir or Vector3.zero) * info.push
 		end
 		CameraFX.shake(info.shake or "Light", 0.8)
 	end

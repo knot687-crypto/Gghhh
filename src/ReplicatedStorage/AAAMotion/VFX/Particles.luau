@@ -133,7 +133,7 @@ function Particles.emit(name: string, count: number, origin: Vector3, opts)
 			local ang = rng:NextNumber() * math.pi * 2
 			local radial = basis:VectorToWorldSpace(Vector3.new(math.cos(ang), 0, math.sin(ang)))
 			local p = origin + radial * r
-			att.WorldCFrame = CFrame.lookAt(p, p + radial)
+			att.WorldCFrame = Util.lookAlong(p, radial)
 			e:Emit(1)
 		end
 	elseif spec.shape == "sphere" then
@@ -142,7 +142,7 @@ function Particles.emit(name: string, count: number, origin: Vector3, opts)
 			local d = Util.cone(rng, Vector3.yAxis, 180)
 			local p = origin + d * r
 			local dir = if spec.inward then -d else d
-			att.WorldCFrame = CFrame.lookAt(p, p + dir)
+			att.WorldCFrame = Util.lookAlong(p, dir)
 			e:Emit(1)
 		end
 	else
@@ -150,7 +150,7 @@ function Particles.emit(name: string, count: number, origin: Vector3, opts)
 		if dir.Magnitude < 1e-4 then
 			dir = Vector3.yAxis
 		end
-		att.WorldCFrame = CFrame.lookAt(origin, origin + dir.Unit)
+		att.WorldCFrame = Util.lookAlong(origin, dir)
 		e:Emit(count)
 	end
 end

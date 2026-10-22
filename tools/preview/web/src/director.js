@@ -39,8 +39,11 @@ class CameraFX {
     this.kicks.push({ deg, dur, age: 0 });
   }
 
+  // One impact frame per strike: hits landing in the same beat don't re-trigger it.
   impactFrame(dur) {
+    if (this.impactCooldown > 0 && this.impact <= 0) return;
     this.impact = Math.max(this.impact, dur);
+    this.impactCooldown = dur + 0.35;
   }
 
   flash(strength, color = '#ffffff') {
@@ -87,6 +90,7 @@ class CameraFX {
     }
     const impact = this.impact > 0 ? 1 : 0;
     this.impact = Math.max(0, this.impact - dt);
+    this.impactCooldown = Math.max(0, (this.impactCooldown ?? 0) - dt);
     const flash = this.flashV;
     this.flashV = Math.max(0, this.flashV - dt * 3.2);
     this.aberration = Math.max(0, this.aberration - dt * 2.5);

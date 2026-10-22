@@ -96,7 +96,7 @@ function movement(app) {
 
   // Jump + double jump
   S.cut(14.6, () => place(hero, 20, 34, 0));
-  S.shot(14.6, { type: 'follow', actor: hero, worldYaw: 0, offset: [11, 0.6, 1.5], look: [0, 1.6, -1], fov: 44, smooth: 0.12 });
+  S.shot(14.6, { type: 'follow', actor: hero, worldYaw: 0, offset: [12.5, 1.6, 2.5], look: [0, 0.6, -1], fov: 50, smooth: 0.025 });
   S.at(14.8, () => hero.move(F, 16));
   S.at(15.2, () => hero.jump());
   S.prompt(15.2, 'SPACE', 'Jump', 0.8);
@@ -128,20 +128,20 @@ function movement(app) {
   S.caption(24.1, 'AIR DASH', 'Mid-air burst  ·  streamlined pose', 2.4);
   S.at(25.5, () => hero.move(null));
 
-  // Wall run + wall jump (wall on the hero's right)
+  // Wall run + wall jump on the sunlit face of the wall (wall on the hero's left)
   const wall = box('WallRunWall');
-  const wallX = wall.center[0] - wall.size[0] / 2;
-  const dist = app.clips.WallRunRight.meta.wallDistance;
-  S.cut(27.0, () => place(hero, wallX - dist - 1.5, -22, 0));
-  S.shot(27.0, { type: 'follow', actor: hero, worldYaw: 0, offset: [-7.5, 2.6, 10], look: [1.5, 0.8, -4], fov: 46, smooth: 0.12 });
+  const wallX = wall.center[0] + wall.size[0] / 2;
+  const dist = app.clips.WallRunLeft.meta.wallDistance;
+  S.cut(27.0, () => place(hero, wallX + dist + 1.5, -22, 0));
+  S.shot(27.0, { type: 'follow', actor: hero, worldYaw: 0, offset: [6.5, 2.2, 8.5], look: [-1.2, 0.9, -4], fov: 48, smooth: 0.1 });
   S.at(27.15, () => hero.move(F, 26));
   S.at(27.55, () => hero.jump());
-  S.at(27.75, () => hero.wallRun('Right', wallX, { dir: F }));
+  S.at(27.75, () => hero.wallRun('Left', wallX, { dir: F }));
   S.caption(27.6, 'WALL RUN', 'Body tilts off the wall  ·  feet strike the wall plane', 2.4);
   S.at(29.05, () => hero.wallJump());
   S.prompt(29.05, 'SPACE', 'Wall jump', 1.2);
   S.caption(29.1, 'WALL JUMP', 'Kick-off twist into the air', 1.8);
-  S.at(29.5, () => hero.move(V(-0.5, 0, -1), 16));
+  S.at(29.5, () => hero.move(V(0.5, 0, -1), 16));
   S.at(30.6, () => hero.move(null));
 
   // Vault
@@ -183,7 +183,7 @@ function movement(app) {
     place(hero, tower.center[0], tower.center[2] - 2.5, 0, top);
     hero.forceLanding = 'heavy';
   });
-  S.shot(44.0, { type: 'track', actor: hero, pos: [tower.center[0] + 16, 5, tower.center[2] - 14], look: [0, 0.2, 0], fov: 44 });
+  S.shot(44.0, { type: 'track', actor: hero, pos: [tower.center[0] + 14, 4.2, tower.center[2] - 18], look: [0, -0.6, 0], fov: 52, smooth: 0.05 });
   S.at(44.25, () => hero.move(F, 10));
   S.at(44.75, () => hero.move(null));
   S.caption(44.6, 'HEAVY LANDING', 'Three-point superhero landing  ·  cracks  ·  shockwave', 3);
@@ -219,7 +219,7 @@ function combat(app) {
   // Iai draw
   S.shot(2.9, { type: 'follow', actor: hero, worldYaw: 0, offset: [4.5, 0.6, -5.2], look: [0, 0.4, 0], fov: 40, smooth: 0.2 });
   S.at(3.1, () => hero.play('Draw'));
-  S.prompt(3.1, '1', 'Draw', 1.2);
+  S.prompt(3.1, 'E', 'Draw', 1.2);
   S.caption(3.1, 'IAI DRAW', 'Nukitsuke  ·  the draw is the first cut', 2.4);
 
   // Combo
@@ -256,7 +256,7 @@ function combat(app) {
   });
   S.shot(16.0, { type: 'follow', actor: hero, worldYaw: 0, offset: [9.5, 1.2, -3], look: [0, 0.3, -3], fov: 44, smooth: 0.12 });
   S.at(16.3, () => hero.attack('Lunge'));
-  S.prompt(16.3, 'SHIFT+M1', 'Lunge', 1.2);
+  S.prompt(16.3, 'R', 'Lunge', 1.2);
   S.caption(16.3, 'LUNGE', 'Sprint thrust  ·  closes 9 studs in 0.2 s', 2.4);
 
   // Aerial slam
@@ -272,7 +272,7 @@ function combat(app) {
   S.at(19.35, () => hero.jump());
   S.at(19.62, () => hero.aerialSlam());
   S.at(19.62, () => hero.move(null));
-  S.prompt(19.62, 'M2 (air)', 'Slam', 1.2);
+  S.prompt(19.62, 'M1 (air)', 'Slam', 1.2);
   S.caption(19.5, 'AERIAL SLAM', 'Plunging strike  ·  crater  ·  radial launch', 3);
 
   // Block vs rival
@@ -365,18 +365,18 @@ function firstperson(app) {
   S.caption(8.0, 'VAULT', 'Hand plants into view', 2.2);
   S.at(9.6, () => hero.move(null));
 
-  // Wall run
+  // Wall run (sunlit face, wall on the left)
   const wall = box('WallRunWall');
-  const wallX = wall.center[0] - wall.size[0] / 2;
-  const dist = app.clips.WallRunRight.meta.wallDistance;
-  S.cut(10.6, () => place(hero, wallX - dist - 1.5, -22, 0));
+  const wallX = wall.center[0] + wall.size[0] / 2;
+  const dist = app.clips.WallRunLeft.meta.wallDistance;
+  S.cut(10.6, () => place(hero, wallX + dist + 1.5, -22, 0));
   fp(10.6, { pitch: -2 });
   S.at(10.75, () => hero.move(F, 26));
   S.at(11.15, () => hero.jump());
-  S.at(11.35, () => hero.wallRun('Right', wallX, { dir: F }));
+  S.at(11.35, () => hero.wallRun('Left', wallX, { dir: F }));
   S.caption(11.3, 'WALL RUN', 'Camera banks away from the wall', 2.4);
   S.at(12.65, () => hero.wallJump());
-  S.at(13.0, () => hero.move(V(-0.5, 0, -1), 16));
+  S.at(13.0, () => hero.move(V(0.5, 0, -1), 16));
   S.at(14.0, () => hero.move(null));
 
   // Combo

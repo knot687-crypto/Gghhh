@@ -121,6 +121,13 @@ function Util.cone(rng: Random, dir: Vector3, deg: number): Vector3
 	return (dir * cz + u * (math.cos(phi) * sz) + v * (math.sin(phi) * sz)).Unit
 end
 
+-- CFrame at `pos` looking along `dir`; safe when `dir` is vertical (lookAt's default up axis).
+function Util.lookAlong(pos: Vector3, dir: Vector3): CFrame
+	local d = if dir.Magnitude > 1e-6 then dir.Unit else Vector3.zAxis
+	local up = if math.abs(d.Y) > 0.99 then Vector3.xAxis else Vector3.yAxis
+	return CFrame.lookAt(pos, pos + d, up)
+end
+
 function Util.lerp(a: number, b: number, t: number): number
 	return a + (b - a) * t
 end

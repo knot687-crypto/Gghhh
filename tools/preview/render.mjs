@@ -66,7 +66,8 @@ async function renderStills() {
 function segmentDir(total) {
   const h = crypto.createHash('sha1');
   const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
-  const files = [path.join(ROOT, 'build/clips.json'), ...walk(path.join(ROOT, 'preview/web')), ...walk(path.join(ROOT, 'anim'))];
+  // Only inputs that change pixels: clip data, the preview app and the anim runtime (not exporters).
+  const files = [path.join(ROOT, 'build/clips.json'), ...walk(path.join(ROOT, 'preview/web')), ...walk(path.join(ROOT, 'anim')).filter((f) => !path.basename(f).startsWith('export-'))];
   for (const f of files.sort()) h.update(fs.readFileSync(f));
   h.update(JSON.stringify({ seq, W, H, FPS, OPTS, crf, total }));
   const dir = path.join(ROOT, 'build/render', `${seq}-${h.digest('hex').slice(0, 10)}`);

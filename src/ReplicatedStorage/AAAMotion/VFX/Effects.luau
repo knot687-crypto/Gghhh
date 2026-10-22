@@ -169,8 +169,7 @@ function Effects.ring(origin: Vector3, normal: Vector3, r0: number, r1: number, 
 		end, 10)
 	end)
 	local att = e.Parent :: Attachment
-	local n = if normal.Magnitude > 1e-4 then normal.Unit else Vector3.yAxis
-	att.WorldCFrame = CFrame.lookAt(origin, origin + n)
+	att.WorldCFrame = Util.lookAlong(origin, if normal.Magnitude > 1e-4 then normal else Vector3.yAxis)
 	e:Emit(1)
 end
 

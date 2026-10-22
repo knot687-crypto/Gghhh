@@ -117,6 +117,10 @@ end
 function AnimationPlayer:update(dt: number)
 	local sdt = dt * self.timeScale
 	for _, tr in ipairs(self.tracks) do
+		-- A playing track's first update also fires markers sitting exactly on its start time
+		-- (Land, DashStart, SwingStart at 0 ...).
+		local fresh = not tr.started
+		tr.started = true
 		tr.prevTime = tr.time
 		tr.time += sdt * tr.speed
 		local L = tr.clip.length
@@ -143,8 +147,9 @@ function AnimationPlayer:update(dt: number)
 			tr:stop(math.max(L - tr.time, 0.0001) / math.max(tr.speed, 1e-3))
 		end
 		if not fired then
+			local from = if fresh and tr.speed > 0 then tr.prevTime - 1e-9 else tr.prevTime
 			for _, m in ipairs(markers) do
-				if m.t > tr.prevTime and m.t <= tr.time then
+				if m.t > from and m.t <= tr.time then
 					self:_fire(tr, m)
 				end
 			end

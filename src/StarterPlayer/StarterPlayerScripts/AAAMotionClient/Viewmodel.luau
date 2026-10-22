@@ -139,8 +139,9 @@ function Viewmodel:mirror(name: string?, opts, _track)
 		end
 		return
 	end
+	-- The viewmodel only animates in first person; don't queue tracks that never update.
 	local fpName = alias(name)
-	if not fpName then
+	if not fpName or not self.enabled then
 		return
 	end
 	local clip = ClipLibrary.get(fpName)
