@@ -714,6 +714,7 @@ function LocalController:startRootAction(name: string, opts)
 		ghost = opts.ghost,
 		physics = opts.physics,
 		exitSpeed = opts.exitSpeed,
+		cancelOnMove = opts.cancelOnMove,
 		endEarly = opts.endEarly or 0.12,
 		hasRM = track.clip.owns.RootMotion == true,
 	}
@@ -733,6 +734,13 @@ end
 function LocalController:stepAction(dt: number)
 	local a = self.action
 	local tr = a.track
+	if a.cancelOnMove and tr.time > 0.08 and self:moveDir().Magnitude > 0 then
+		-- Moving again cuts a run stop short (inertialized back into locomotion).
+		self:endAction(true)
+		self:stopReplicated(0.1)
+		self:setMode("Ground")
+		return
+	end
 	if a.hasRM then
 		local rm = ClipLibrary.samplePosition(a.clip, "RootMotion", tr.time) or Vector3.zero
 		rm *= self.posScale
@@ -1327,6 +1335,33 @@ function LocalController:stepGround(dt: number)
 	if input.Magnitude > 0 and self:hSpeed() > 10 and not self.blocking and not self.crouch then
 		self:tryVault()
 	end
+	-- Letting go while running: plant and stop instead of sliding to idle.
+	local wasMoving = self.wasMoving
+	self.wasMoving = input.Magnitude > 0
+	if wasMoving and input.Magnitude == 0 and not self.armed and not self.crouch and not self.blocking and self.landLock <= 0 then
+		local v = self:hSpeed()
+		if v >= MOVE.stopMinSpeed then
+			self:runStop(v)
+		end
+	end
+end
+
+function LocalController:runStop(speed: number)
+	-- The foot swinging forward lands next and brakes (phase 0 = left contact, 0.5 = right).
+	local side = if self.driver.anim.phase < 0.5 then "Right" else "Left"
+	local clip = ClipLibrary.get("RunStop" .. side)
+	if not clip then
+		return
+	end
+	local k = math.clamp(speed / (clip.meta.stopFrom or 20), 0.6, 1.4)
+	self:startRootAction(clip.name, {
+		planar = true,
+		fadeIn = 0.08,
+		cancelOnMove = true,
+		warp = function(_t, rm)
+			return rm * k
+		end,
+	})
 end
 
 return LocalController

@@ -12,6 +12,7 @@ export const MOVE = {
   jumpVelocity: 54,
   doubleJumpVelocity: 52,
   coyoteTime: 0.12,
+  stopMinSpeed: 12, // letting go of the stick faster than this plays a run stop (unarmed)
   jumpBuffer: 0.12,
   dash: { speed: 92, duration: 0.24, endSpeed: 24, cooldown: 0.5, airDashes: 1, afterimageInterval: 0.035 },
   airDash: { speed: 80, duration: 0.22, upVelocity: 8 },

@@ -83,8 +83,21 @@ export class Actor {
 
   // ------------------------------------------------------------------ commands
   move(dir, speed = MOVE.walkSpeed) {
+    const was = this.moveDir;
     this.moveDir = dir ? dir.clone().setY(0).normalize() : null;
     this.targetSpeed = dir ? speed : 0;
+    // Letting go while running: plant and stop (see RunStop clips) instead of sliding to idle.
+    const v = Math.hypot(this.vel.x, this.vel.z);
+    if (!dir && was && this.mode === 'ground' && this.grounded && !this.armed && !this.crouch && !this.blocking && !this.anim.actionActive && v >= MOVE.stopMinSpeed) {
+      this.runStop(v);
+    }
+  }
+
+  runStop(speed) {
+    // The foot swinging forward lands next and brakes (phase 0 = left contact, 0.5 = right).
+    const side = this.anim.phase < 0.5 ? 'Right' : 'Left';
+    const clip = this.app.clips[`RunStop${side}`];
+    this.rootAction(clip.name, { fadeIn: 0.08, motionScale: Math.min(1.4, Math.max(0.6, speed / clip.meta.stopFrom)) });
   }
 
   face(yawDeg) {
@@ -166,11 +179,11 @@ export class Actor {
     this.app.vfx.play('WallKick', foot, { normal: away });
   }
 
-  rootAction(name, { fadeIn = 0.08, speed = 1 } = {}) {
+  rootAction(name, { fadeIn = 0.08, speed = 1, motionScale = 1 } = {}) {
     const tr = this.play(name, { fadeIn, speed });
     this.mode = 'root';
     this.rootTrack = tr;
-    this.rootStart = { pos: this.pos.clone(), yaw: this.yaw };
+    this.rootStart = { pos: this.pos.clone(), yaw: this.yaw, scale: motionScale };
     this.vel.set(0, 0, 0);
     return tr;
   }
@@ -605,7 +618,7 @@ export class Actor {
         const tr = this.rootTrack;
         const rm = sampleRootMotion(tr.clip, tr.time);
         if (rm) {
-          const world = rm.clone().applyAxisAngle(UP, this.rootStart.yaw);
+          const world = rm.clone().multiplyScalar(this.rootStart.scale ?? 1).applyAxisAngle(UP, this.rootStart.yaw);
           const prev = this.pos.clone();
           this.pos.copy(this.rootStart.pos).add(world);
           if (effDt > 0) this.vel.copy(this.pos).sub(prev).divideScalar(Math.max(effDt, 1e-4));

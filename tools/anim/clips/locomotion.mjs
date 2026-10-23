@@ -3,6 +3,7 @@ import { clip, pose } from '../core/dsl.mjs';
 import { holdScabbard, plantFoot } from '../core/kinematics.mjs';
 import { R15 } from '../core/rig.mjs';
 import { gait } from '../gait.mjs';
+import { perform } from '../perform.mjs';
 
 const G = R15.ground;
 const SHEATHED = { weapon: 'sheath' };
@@ -168,4 +169,75 @@ export const CrouchWalk = gait('CrouchWalk', {
   meta: SHEATHED,
 });
 
-export default [Idle, Walk, Run, Sprint, CrouchIdle, CrouchWalk];
+// ---------------------------------------------------------------- Run stops
+// Stopping from a run (authored at 20 studs/s; runtimes scale the root motion to the entry
+// speed). The next foot to land brakes far ahead with the toe up and the body counter-leans
+// back over it, momentum tips the torso forward again as the other foot catches, then the
+// braking foot steps in and the body settles into Idle. `side` = the braking foot.
+function runStop(side) {
+  const s = side === 'Right' ? 1 : -1;
+  const brakeKey = side === 'Right' ? 'R' : 'L';
+  const catchKey = side === 'Right' ? 'L' : 'R';
+  // Idle's feet relative to the root, and the stop's travel.
+  const idleL = [-0.62, -0.22, 10, 0, 0];
+  const idleR = [0.62, 0.24, -16, 0, 0];
+  const D = -2.82;
+  const at = (f) => [f[0], f[1] + D, f[2], f[3], f[4]];
+  const fin = { L: at(idleL), R: at(idleR) };
+  const brakeX = 0.6 * s;
+  const catchX = -0.55 * s;
+  const yaw = (y) => y * s;
+  const swingR = (k) => ({ RightShoulder: { r: [k, -4, 6] }, RightElbow: { r: [30 + Math.abs(k) * 0.6, 0, 0] }, RightWrist: { r: [6, 0, -4] } });
+  return clip(`RunStop${side}`, { length: 0.62, ...SHEATHED, reduce: true, stopFrom: 20 }, (c) => {
+    perform(c, {
+      path: [
+        [0, 0, 0, 0],
+        [0.06, 0, 0, -1.15],
+        [0.12, 0, 0, -1.95],
+        [0.2, 0, 0, -2.5],
+        [0.3, 0, 0, -2.78],
+        [0.62, 0, 0, D],
+      ],
+      beats: [
+        { t: 0, body: { rp: [0, -0.25, 0], rr: [-10, 0, 0], wr: [-4, 0, 0], nr: [6, 0, 0] }, right: swingR(-40), scabbard: { along: 0.78 } },
+        {
+          t: 0.08,
+          body: { rp: [0, -0.5, 0.15], rr: [10, yaw(-6), 0], wr: [8, yaw(4), 0], nr: [-6, yaw(2), 0] },
+          right: swingR(45),
+          scabbard: { along: 0.78 },
+          lead: { nr: 0.02 },
+        },
+        { t: 0.2, body: { rp: [0, -0.55, 0.05], rr: [6, yaw(-4), 0], wr: [-6, yaw(2), 0], nr: [4, 0, 0] }, right: swingR(30), scabbard: { along: 0.78 } },
+        { t: 0.36, body: { rp: [0, -0.3, 0], rr: [-2, 2, 0], wr: [-3, -2, 0], nr: [2, 0, 0] }, right: swingR(10), scabbard: { along: 0.78 } },
+        { t: 0.5, body: { rp: [0.04, -0.08, 0], rr: [-1, 7, -0.4], wr: [-0.6, -6, 1], nr: [0.4, -2, -0.6] }, right: swingR(2), scabbard: { along: 0.78 } },
+        {
+          t: 0.62,
+          body: { rp: [0.06, -0.1, 0], rr: [-1.5, 9, -0.72], wr: [-1, -7, 1.14], nr: [0.5, -3, -0.8] },
+          right: { RightShoulder: { r: [4, -4, 5] }, RightElbow: { r: [14, 0, 0] }, RightWrist: { r: [6, 0, -4] } },
+          scabbard: { along: 0.78 },
+        },
+      ],
+      feet: {
+        [brakeKey]: [
+          [0, [brakeX * 0.9, -0.5, yaw(-8), -30, 0.5]],
+          [0.07, [brakeX, -2.0, yaw(-10), 18, 0], { air: true }],
+          [0.12, [brakeX, -2.0, yaw(-10), 0, 0]],
+          [0.32, [brakeX, -2.0, yaw(-10), 0, 0]],
+          [0.46, fin[brakeKey], { h: 0.14 }],
+        ],
+        [catchKey]: [
+          // Already pushing off behind: it swings through and catches the weight.
+          [0, [catchX, 0.25, yaw(8), -32, 0.22]],
+          [0.22, fin[catchKey], { air: true }],
+        ],
+      },
+    });
+    c.marker(0.07, 'DashBrake', { dir: 'Forward' });
+    c.marker(0.22, 'Footstep', { foot: catchKey === 'L' ? 'Left' : 'Right', speed: 20 });
+    c.marker(0.46, 'Footstep', { foot: side, speed: 10 });
+  });
+}
+export const RunStopRight = runStop('Right');
+export const RunStopLeft = runStop('Left');
+
+export default [Idle, Walk, Run, Sprint, CrouchIdle, CrouchWalk, RunStopRight, RunStopLeft];

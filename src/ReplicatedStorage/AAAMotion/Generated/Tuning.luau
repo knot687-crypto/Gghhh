@@ -12,6 +12,7 @@ return {
 		jumpVelocity = 54,
 		doubleJumpVelocity = 52,
 		coyoteTime = 0.12,
+		stopMinSpeed = 12,
 		jumpBuffer = 0.12,
 		dash = {
 			speed = 92,
