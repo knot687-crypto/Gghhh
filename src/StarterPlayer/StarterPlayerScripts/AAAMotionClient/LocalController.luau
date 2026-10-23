@@ -221,7 +221,20 @@ function LocalController:aimYaw(): number
 end
 
 -- ------------------------------------------------------------------ input entry points
+-- Run stops are soft: any action input cuts them short so nothing feels swallowed.
+function LocalController:cancelSoftAction()
+	local a = self.action
+	if self.mode == "Action" and a and a.cancelOnMove then
+		self:endAction(true)
+		self:stopReplicated(0.08)
+		self:setMode("Ground")
+	end
+end
+
 function LocalController:onAction(action: string, down: boolean)
+	if down and action ~= "Sprint" then
+		self:cancelSoftAction()
+	end
 	if action == "Sprint" then
 		self.sprintHeld = down
 		if down and UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
@@ -284,6 +297,7 @@ function LocalController:onJumpRequest()
 	if self.cool.jump > 0 or os.clock() - self.lastJumpPress > 0.12 then
 		return
 	end
+	self:cancelSoftAction()
 	local m = self.mode
 	if m == "WallRun" then
 		self.cool.jump = 0.2
