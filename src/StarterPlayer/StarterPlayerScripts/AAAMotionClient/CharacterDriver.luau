@@ -47,6 +47,9 @@ function CharacterDriver.new(model: Model, isLocal: boolean)
 	self.humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	self.root = model:FindFirstChild("HumanoidRootPart") :: BasePart
 	self.anim = CharacterAnimator.new(Rig.R15)
+	-- Attacks move the body planar-only (gravity keeps it grounded), so hops in their root
+	-- motion (Light3's launcher, Light4's spin, the heavy leap) are shown by lifting the pelvis.
+	self.anim.visualLift = true
 	self.binding = RigBinding.new(model, Rig.R15)
 	self.posScale = self.binding.posScale
 	self.listeners = {}
@@ -440,14 +443,6 @@ function CharacterDriver:update(dt: number, timeScale: number)
 	end
 
 	local pose = self.anim:evaluate()
-	-- Attacks move the body planar-only (gravity keeps it grounded); hops in their root motion
-	-- (Light3's launcher, Light4's spin, the heavy leap) are shown by lifting the pelvis.
-	if action and action.clip.meta.visualLift and pose.Root then
-		local rm = ClipLibrary.samplePosition(action.clip, "RootMotion", action.time)
-		if rm and rm.Y ~= 0 then
-			pose.Root = CFrame.new(0, rm.Y * action.weight, 0) * pose.Root
-		end
-	end
 	self.binding:apply(pose)
 	self.weapon:applyPose(pose.Weapon)
 

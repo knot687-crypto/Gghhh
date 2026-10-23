@@ -773,6 +773,11 @@ function LocalController:endAction(interrupted: boolean)
 		self.attack = nil
 	end
 	if not interrupted then
+		-- Control comes back a little before the clip ends: hand the body to locomotion now
+		-- (inertialized) so moving off doesn't drag the feet through the clip's last frames.
+		if self.driver.anim.action == a.track then
+			self.driver:stopAction(0.15)
+		end
 		self.motor:freeFacing()
 		local grounded = self.humanoid.FloorMaterial ~= Enum.Material.Air
 		self:setMode(if grounded or not a.physics then "Ground" else "Air")

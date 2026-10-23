@@ -609,6 +609,8 @@ export class Actor {
         }
         const end = tr.done || tr.stopping || tr.time >= tr.clip.length - 0.12;
         if (end) {
+          // Hand the body back to locomotion (inertialized) as control returns.
+          if (tr === this.anim.action) this.anim.stopAction(0.15);
           this.groundY = this.groundAt(this.pos.x, this.pos.z);
           this.vel.set(0, 0, 0);
           if (this.pos.y > this.groundY + ROOT_H + 0.3) this.mode = 'air';

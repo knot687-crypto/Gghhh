@@ -12,6 +12,7 @@ local Rig = require(AAAMotion.Generated.Rig)
 local sc = loadfile(scenarioPath)()
 
 local anim = CharacterAnimator.new(Rig.R15)
+anim.visualLift = true
 local frame = 0
 anim:on(function(name, data)
 	local extra = data and (data.foot or data.to or "") or ""

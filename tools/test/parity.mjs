@@ -64,6 +64,7 @@ for (let f = 0; f < N; f++) {
 // ------------------------------------------------------------------ JS reference
 const clips = JSON.parse(fs.readFileSync(path.join(ROOT, 'build/clips.json'), 'utf8'));
 const anim = new CharacterAnimator(clips);
+anim.visualLift = true; // exercised by HeavyRelease's leap
 const jsOut = [];
 let frame = 0;
 anim.on((name, data) => jsOut.push(`E ${frame} ${name} ${data?.foot ?? data?.to ?? ''}`));

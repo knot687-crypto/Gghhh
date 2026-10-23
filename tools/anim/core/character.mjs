@@ -5,6 +5,7 @@
 // overlay | 3 additive (flinches, landings). After blending, a procedural pass adds lean into
 // turns/acceleration (pivoting at the feet) and hit-stop jitter.
 import { Animator } from './animator.mjs';
+import { evalChannel } from './curve.mjs';
 import { R15, rigJointNames } from './rig.mjs';
 import { mulXform, quatFromEulerXYZ, quatMul, quatRotate } from './xform.mjs';
 
@@ -174,6 +175,9 @@ export class CharacterAnimator {
     this.legLength = 1.83;
     this.inert = new Inertializer();
     this.lastDt = 0;
+    // Show hops in attack root motion by lifting the pelvis (for runtimes that move the body
+    // planar-only, like the Roblox controller; the preview moves the body for real).
+    this.visualLift = false;
     this.state = { speed: 0, vy: 0, grounded: true, crouch: false, armed: false, yaw: 0, moving: true };
     this.animator.onMarker((track, marker) => this.emit(marker.name, marker, track));
     for (const name of LOCO_CLIPS) {
@@ -353,6 +357,12 @@ export class CharacterAnimator {
 
   evaluate() {
     let pose = this.animator.evaluate();
+    const a = this.action;
+    const rmy = a?.clip.tracks.RootMotion?.py;
+    if (this.visualLift && a && !a.stopping && a.clip.meta?.visualLift && rmy && pose.Root) {
+      const y = evalChannel(rmy, Math.min(Math.max(a.time, 0), a.clip.length));
+      if (y !== 0) pose.Root = { p: [pose.Root.p[0], pose.Root.p[1] + y, pose.Root.p[2]], q: pose.Root.q };
+    }
     if (pose.Root) {
       // Lean about the ground point under the root joint so the feet stay put.
       const q = quatFromEulerXYZ(this.lean.pitch * D2R, 0, this.lean.roll * D2R);

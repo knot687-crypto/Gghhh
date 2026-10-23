@@ -103,6 +103,7 @@ function movement(app) {
   S.at(15.52, () => hero.doubleJump());
   S.prompt(15.52, 'SPACE', 'Double jump', 1.2);
   S.caption(15.2, 'DOUBLE JUMP', 'Tucked front flip  ·  air-ring burst', 2.6);
+  S.at(15.6, () => app.fx.slowmo(0.35, 1.0));
   S.at(16.9, () => hero.move(null));
 
   // Four-way dash
@@ -141,6 +142,7 @@ function movement(app) {
   S.at(29.05, () => hero.wallJump());
   S.prompt(29.05, 'SPACE', 'Wall jump', 1.2);
   S.caption(29.1, 'WALL JUMP', 'Kick-off twist into the air', 1.8);
+  S.at(29.07, () => app.fx.slowmo(0.4, 0.8));
   S.at(29.5, () => hero.move(V(0.5, 0, -1), 16));
   S.at(30.6, () => hero.move(null));
 
@@ -187,6 +189,8 @@ function movement(app) {
   S.at(44.25, () => hero.move(F, 10));
   S.at(44.75, () => hero.move(null));
   S.caption(44.6, 'HEAVY LANDING', 'Three-point superhero landing  ·  cracks  ·  shockwave', 3);
+  // Slow motion from just before touchdown.
+  S.when(44.8, () => !hero.grounded && hero.vel.y < -30 && hero.pos.y < ROOT_H + 5, () => app.fx.slowmo(0.3, 1.0));
   S.cut(48.3, () => {
     place(hero, tower.center[0], tower.center[2] + 3, 0, top);
     hero.forceLanding = 'roll';
@@ -233,6 +237,9 @@ function combat(app) {
   S.at(c0 + 1.34, () => hero.attack('Light4'));
   ['M1', 'M1', 'M1', 'M1'].forEach((k, i) => S.prompt(c0 + [0, 0.42, 0.86, 1.34][i], k, `Light ${i + 1}`, 0.5));
   S.caption(c0, '4-HIT COMBO', 'Kesa-giri  ·  backhand  ·  rising launch  ·  whirlwind finisher', 4.2);
+  // Hero moments in slow motion: the finisher slam, from the blade at its peak.
+  const atClip = (name, t) => () => hero.attackTrack?.clip.name === name && !hero.attackTrack.done && hero.attackTrack.time >= t;
+  S.when(c0 + 1.34, atClip('Light4', 0.415), () => app.fx.slowmo(0.28, 1.1));
 
   // Heavy
   S.cut(11.2, () => {
@@ -247,6 +254,7 @@ function combat(app) {
   S.prompt(11.5, 'M2 hold', 'Charge', 1.4);
   S.caption(11.5, 'HEAVY  ·  CHARGED CLEAVE', 'Energy gathers on the blade  ·  ground split  ·  rock eruption', 3.6);
   S.at(12.75, () => hero.release());
+  S.when(12.75, atClip('HeavyRelease', 0.07), () => app.fx.slowmo(0.25, 1.0));
 
   // Lunge
   S.cut(16.0, () => {
@@ -274,6 +282,7 @@ function combat(app) {
   S.at(19.62, () => hero.move(null));
   S.prompt(19.62, 'M1 (air)', 'Slam', 1.2);
   S.caption(19.5, 'AERIAL SLAM', 'Plunging strike  ·  crater  ·  radial launch', 3);
+  S.when(19.62, atClip('AerialSlamLand', 0), () => app.fx.slowmo(0.3, 0.9));
 
   // Block vs rival
   S.cut(23.2, () => {
@@ -393,6 +402,8 @@ function firstperson(app) {
   fp(c0 + 0.9, { pitch: 4, turnRate: 3 });
   fp(c0 + 1.6, { pitch: -4, turnRate: 2 });
   S.caption(c0, '4-HIT COMBO', 'View-space slash trails  ·  camera kick on every cut', 3.6);
+  const atClip = (name, t) => () => hero.attackTrack?.clip.name === name && !hero.attackTrack.done && hero.attackTrack.time >= t;
+  S.when(c0 + 1.34, atClip('Light4', 0.415), () => app.fx.slowmo(0.3, 1.0));
 
   // Heavy
   S.cut(20.6, () => {
@@ -404,6 +415,7 @@ function firstperson(app) {
   S.at(20.9, () => hero.charge());
   S.caption(20.9, 'HEAVY', 'Charge, then split the ground', 3);
   S.at(22.2, () => hero.release());
+  S.when(22.2, atClip('HeavyRelease', 0.07), () => app.fx.slowmo(0.28, 0.9));
 
   // Block + parry vs rival
   S.cut(24.6, () => {

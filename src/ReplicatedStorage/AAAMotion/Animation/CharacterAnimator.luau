@@ -196,6 +196,9 @@ function CharacterAnimator.new(rig)
 	self.legLength = 1.83
 	self.inert = Inertializer.new()
 	self.lastDt = 0
+	-- Show hops in attack root motion by lifting the pelvis (for runtimes that move the body
+	-- planar-only, like the Roblox controller).
+	self.visualLift = false
 	self.wasGrounded = true
 	self.state = { speed = 0, vy = 0, grounded = true, crouch = false, armed = false, yaw = 0 }
 	self.player:onMarker(function(track, marker)
@@ -415,6 +418,13 @@ end
 
 function CharacterAnimator:evaluate()
 	local pose = self.player:evaluate()
+	local a = self.action
+	if self.visualLift and a and not a.stopping and a.clip.meta.visualLift and pose.Root then
+		local rm = ClipLibrary.samplePosition(a.clip, "RootMotion", a.time)
+		if rm and rm.Y ~= 0 then
+			pose.Root = CFrame.new(0, rm.Y, 0) * pose.Root
+		end
+	end
 	if pose.Root then
 		-- Lean about the ground point under the root joint so the feet stay put.
 		local q = CFrame.Angles(rad(self.lean.pitch), 0, rad(self.lean.roll))

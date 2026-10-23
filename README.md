@@ -53,6 +53,22 @@ follow parametric arcs with the cutting edge leading, and each attack's blade pa
 slash ribbon matches the swing at any frame rate. Clips carry gameplay markers (`HitStart`,
 `HitEnd`, `ComboWindow`, `SwingStart`, `Land`, `HandPlant`, `WeaponAttach` …).
 
+Attacks, parry, staggers and the draw/sheath are authored as *performances*
+(`tools/anim/perform.mjs`): key poses per body part with their own timing, sampled at 120 Hz with
+the IK re-solved every sample, then curve-reduced. That gives every strike:
+
+* **Anticipation that reads** — a windup into a clear silhouette, then a short *load* beat where
+  the hips start forward while the shoulders stay coiled and the blade tip drops back.
+* **A kinetic chain** — eyes lead, hips drive, torso follows, arms trail and the blade whips
+  through last (per-part lead/lag), with the wrist snapping the blade ahead of its arc at contact.
+* **Footwork with weight** — real steps (heel-off, swing arc, heel strike), fumikomi stamps,
+  the rear foot drawn up afterwards (hikitsuke), skids and ballistic hops; planted feet never slide.
+* **Follow-through and settle** — the body sinks into the cut, holds zanshin, and returns to
+  chudan with a small overshoot, arms and head overlapping the hips.
+
+The build checks every attack: planted feet must stay within 3 cm of their marks, the hands must
+be able to put the blade on its arc, and every `HitStart` must sit inside a swing.
+
 **VFX** — hit sparks, slash shards, glow and embers; cross flashes; shockwave rings; dust rings,
 debris and rock eruptions with ground cracks; dash wind bursts and afterimages; slide sparks;
 footstep dust; parry stars; blade edge glow; swept slash ribbons; camera trauma shake, FOV kicks,
@@ -69,6 +85,11 @@ normal `Animator`. Notes:
 * Markers are exported as KeyframeMarkers: `track:GetMarkerReachedSignal("HitStart")`.
 * The sword pose is named **`Handle`**: give your katana's root part that name and attach it with a
   `Motor6D` from `RightHand` with `C0 = CFrame.new(0, -0.15, 0) * CFrame.Angles(math.rad(-90), 0, 0)`.
+* `Draw` / `Sheath` switch the katana between hand and scabbard at their `WeaponAttach` marker.
+  Sheathed, the katana hangs from `LowerTorso` with
+  `C0 = CFrame.new(-0.219, 0.151, -0.952) * CFrame.Angles(math.rad(-52.3), math.rad(35.8), math.rad(150.3))`
+  (worn tachi-style, edge down, handle angled across the belly) — the right hand grips exactly
+  there at the attach frame, so the swap is invisible.
 * Root motion (vault, mantle, lunge, attack steps) can't be stored in a KeyframeSequence — move the
   HumanoidRootPart yourself, or use the AAA Motion runtime which applies it with motion warping.
 * Additive flinches are baked onto the combat stance, since KeyframeSequences are absolute.
@@ -80,6 +101,10 @@ normal `Animator`. Notes:
   (locomotion → actions → upper-body overlays → additive) and writing `Motor6D.Transform` in
   `RunService.PreSimulation`. Locomotion blends walk/run/sprint by speed with phase sync (no foot
   sliding), leans into turns and acceleration, and freezes for hit-stop.
+* **Inertialized transitions.** Full-body actions switch instantly; the difference between the
+  pose on screen and the new animation decays with a critically damped spring that keeps the old
+  motion's velocity. Combos chain without cross-fading through an average pose, and every strike
+  plays undiluted from its first frame.
 * **Replication.** Locomotion comes from replicated physics; one-shot actions are relayed by the
   server (`Play`/`Stop`); persistent state (`AAA_Armed`, `AAA_Crouch`, `AAA_Blocking`) is attributes,
   so late joiners see the right stance.
@@ -115,6 +140,8 @@ node preview/sheet.mjs --clip Light1,Light2 --n 8      # contact sheets for revi
 npm run render -- --seq combat --out ../media/aaa_combat.mp4   # showcase video (resumable)
 node preview/export-textures.mjs   # -> assets/textures/*.png
 test/luaurun/build.sh && node test/parity.mjs           # Luau runtime vs JS reference
+node test/kfs-roundtrip.mjs        # exported KeyframeSequences vs the source curves
+PERFORM_DIAG=Light1 npm run build  # per-sample blade-path error of a performance clip
 ```
 
 Rendering uses headless Chromium + three.js + ffmpeg; `render.mjs` writes finished segments to
@@ -126,11 +153,12 @@ Rendering uses headless Chromium + three.js + ffmpeg; `render.mjs` writes finish
   the runtime (non-strict mode).
 * Parity test: the Luau animation runtime, run in a real Luau VM, reproduces the JS animator that
   rendered the videos — 3,840 joint samples over a 12 s scripted sequence (locomotion blends,
-  jumps, dash, combo with hit-stop, overlays, charge/release, block, flinch, vault) agree within
-  0.0002° and 0.00005 studs, with an identical marker/event stream. Hit geometry checks pass.
-* KeyframeSequence export round trip (parse the exported sequences, interpolate like Roblox,
-  compare with the source curves): within 0.005 studs everywhere and within 1.7° even at the
-  fastest one-frame strike.
+  jumps, dash, combo with hit-stop and inertialized transitions, overlays, charge/release with
+  the leap's visual lift, block, flinch, vault) agree within 0.00015° and 0.00001 studs, with an
+  identical marker/event stream. Hit geometry checks pass.
+* KeyframeSequence export round trip (`test/kfs-roundtrip.mjs`: parse the exported sequences,
+  interpolate like Roblox, compare with the source curves at 240 Hz): within 0.005 studs and
+  0.7° everywhere, including the fastest strikes.
 * `rojo build` produces the place and model files.
 * Not yet play-tested inside Roblox Studio itself (no Studio in the build environment) — the
   movement physics, network relay and effect visuals have only been checked statically. Expect to
