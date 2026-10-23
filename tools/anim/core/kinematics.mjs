@@ -163,12 +163,16 @@ export function solve(pose, { rig = 'R15', params, goals, rest = 0.00015, restWe
     const r2 = residual();
     const cost2 = r2.reduce((s, x) => s + x * x, 0);
     if (cost2 < cost) {
+      const gain = cost - cost2;
       r = r2;
       cost = cost2;
-      lambda = Math.max(lambda * 0.5, 1e-4);
+      lambda = Math.max(lambda * 0.5, 1e-8);
+      if (gain < 1e-13 || dx.every((d) => Math.abs(d) < 1e-7)) break;
     } else {
       params.forEach((pr, i) => set(pr, saved[i]));
       lambda *= 4;
+      // The rest term keeps the cost above zero at the optimum; once no step helps, stop.
+      if (lambda > 1e8) break;
     }
   }
   return p;

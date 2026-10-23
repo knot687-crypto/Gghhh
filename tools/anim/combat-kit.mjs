@@ -46,7 +46,7 @@ export class Arc {
     Object.assign(this, { c, r, roll, pitch, yaw, bladeLead });
   }
 
-  frame(theta, spin = 0) {
+  frame(theta, spin = 0, lead = this.bladeLead) {
     const t = theta * D2R;
     const tf = (v) => rotY(rotY(rotX(rotZ(v, this.roll), this.pitch), this.yaw), spin);
     const u = tf([0, 1, 0]);
@@ -55,8 +55,8 @@ export class Arc {
     const tangent = add(scale(u, -Math.sin(t)), scale(v, Math.cos(t)));
     const centre = rotY(this.c, spin);
     const gripPos = add(centre, scale(radial, this.r));
-    // bladeLead tilts the blade ahead of the radial direction (wrist snap).
-    const l = this.bladeLead * D2R;
+    // The lead tilts the blade ahead of the radial direction (wrist snap); negative trails it.
+    const l = lead * D2R;
     const blade = add(scale(radial, Math.cos(l)), scale(tangent, Math.sin(l)));
     const edge = add(scale(tangent, Math.cos(l)), scale(radial, -Math.sin(l)));
     return { grip: gripPos, blade, edge };

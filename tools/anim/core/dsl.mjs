@@ -10,7 +10,7 @@
 // time (overlapping action / follow-through). Every joint a clip ever keys is "owned" by that
 // clip; joints it never keys pass through to lower animation layers.
 
-import { compileChannel } from './curve.mjs';
+import { compileChannel, evalChannel } from './curve.mjs';
 import { easeCode } from './easing.mjs';
 import { mirrorName } from './rig.mjs';
 
@@ -147,6 +147,47 @@ function eulerFilter(chans, length, loop) {
   for (let i = 0; i < 3; i++) chans[CH[i]] = keys.map((k) => ({ t: k.t, v: k.r[i], e: k.e[i] }));
 }
 
+// Densely sampled clips (see perform.mjs) are reduced per channel: keep the fewest keys whose
+// curve (with the runtime's auto tangents) stays within tolerance of every sample.
+const REDUCE_TOL = { rot: 0.08, pos: 0.0015 };
+
+function reduceKeys(keys, length, loop, tol) {
+  const byTime = new Map();
+  for (const k of keys) {
+    let t = k.t;
+    if (loop) {
+      t = ((t % length) + length) % length;
+      if (length - t < 1e-6) t = 0;
+    } else t = Math.min(Math.max(t, 0), length);
+    t = Math.round(t * 1e5) / 1e5;
+    byTime.set(t, { ...k, t });
+  }
+  const ks = [...byTime.values()].sort((a, b) => a.t - b.t);
+  const n = ks.length;
+  if (n <= 2) return ks;
+  const keep = new Array(n).fill(false);
+  keep[0] = true;
+  keep[n - 1] = true;
+  // Eased / stepped segments are only exact between their own keys.
+  for (let i = 0; i < n - 1; i++) if (ks[i].e !== 0) keep[i] = keep[i + 1] = true;
+  for (;;) {
+    const sub = ks.filter((_, i) => keep[i]);
+    const ch = compileChannel(sub, length, loop);
+    let worst = -1;
+    let worstErr = tol;
+    for (let i = 0; i < n; i++) {
+      if (keep[i]) continue;
+      const err = Math.abs(evalChannel(ch, ks[i].t) - ks[i].v);
+      if (err > worstErr) {
+        worstErr = err;
+        worst = i;
+      }
+    }
+    if (worst < 0) return sub;
+    keep[worst] = true;
+  }
+}
+
 class ClipBuilder {
   constructor(name, opts) {
     this.name = name;
@@ -182,6 +223,11 @@ class ClipBuilder {
       }
     }
     for (const chans of Object.values(raw)) eulerFilter(chans, length, loop);
+    if (this.opts.reduce) {
+      for (const chans of Object.values(raw)) {
+        for (const c of CH) chans[c] = reduceKeys(chans[c], length, loop, c[0] === 'r' ? REDUCE_TOL.rot : REDUCE_TOL.pos);
+      }
+    }
     const tracks = {};
     for (const [joint, chans] of Object.entries(raw)) {
       tracks[joint] = {};
@@ -200,6 +246,7 @@ class ClipBuilder {
     const { rig, additive, ...meta } = this.opts;
     delete meta.length;
     delete meta.loop;
+    delete meta.reduce;
     return { name: this.name, rig, length, loop, additive, tracks, markers, meta };
   }
 }
