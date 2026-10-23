@@ -469,7 +469,7 @@ export const Mantle = clip('Mantle', { length: MANTLE_LEN, ...SHEATHED, obstacle
   stand = plantFoot(stand, 'Right', sub([0.5, LEDGE.y, LEDGE.z - 1.1], P(0.8)));
   stand = plantFoot(stand, 'Left', sub([-0.5, LEDGE.y, LEDGE.z - 1.6], P(0.8)));
   c.key(0.8, stand);
-  c.key(MANTLE_LEN, holdScabbard(stand, { along: 0.78, roll: -20 }));
+  c.key(MANTLE_LEN, holdScabbard(stand, { along: 0.78 }));
   c.marker(0.14, 'HandPlant', { hand: 'Both' });
   c.marker(0.64, 'Land', { strength: 'light' });
 });

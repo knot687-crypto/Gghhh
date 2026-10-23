@@ -220,7 +220,7 @@ function stand() {
   });
   p = plantFoot(p, 'Left', [-0.62, G, -0.22], { yaw: 10 });
   p = plantFoot(p, 'Right', [0.62, G, 0.24], { yaw: -16 });
-  return holdScabbard(p, { along: 0.78, roll: -20 });
+  return holdScabbard(p, { along: 0.78 });
 }
 
 // Superhero three-point landing for big falls.

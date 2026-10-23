@@ -23,7 +23,7 @@ function idleBase({ drop = 0.1, shift = 0.06, breath = 0 } = {}) {
   });
   p = plantFoot(p, 'Left', [-0.62, G, -0.22], { yaw: 10 });
   p = plantFoot(p, 'Right', [0.62, G, 0.24], { yaw: -16 });
-  p = holdScabbard(p, { along: 0.78, roll: -20 });
+  p = holdScabbard(p, { along: 0.78 });
   return p;
 }
 
@@ -132,7 +132,7 @@ function crouchBase({ breath = 0 } = {}) {
   });
   p = plantFoot(p, 'Left', [-0.66, G, -0.42], { yaw: 12 });
   p = plantFoot(p, 'Right', [0.66, G, 0.36], { yaw: -18, pitch: -14 });
-  return holdScabbard(p, { along: 0.78, roll: -20 });
+  return holdScabbard(p, { along: 0.78 });
 }
 
 export const CrouchIdle = clip('CrouchIdle', { length: 2.6, loop: true, ...SHEATHED }, (c) => {
@@ -164,7 +164,7 @@ export const CrouchWalk = gait('CrouchWalk', {
     { s: 0.82, hip: 66, knee: -96, ankle: 8 },
   ],
   arms: { bias: 18, swing: 14, elbow: 40, elbowSwing: 8, out: 10, inward: 4, lag: 0.05, wrist: 8 },
-  extra: (phi, p) => holdScabbard(p, { along: 0.78, roll: -20 }),
+  extra: (phi, p) => holdScabbard(p, { along: 0.78 }),
   meta: SHEATHED,
 });
 

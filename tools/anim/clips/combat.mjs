@@ -6,7 +6,7 @@
 //   Stomp / HeavyImpact / SlamImpact / Parry / BlockImpact   VFX + camera cues
 import { clip, pose } from '../core/dsl.mjs';
 import { R15 } from '../core/rig.mjs';
-import { eulerQuat, holdScabbard, plantFoot, reach, sheathFrame } from '../core/kinematics.mjs';
+import { eulerQuat, fk, holdScabbard, plantFoot, reach, sheathFrame } from '../core/kinematics.mjs';
 import { quatMul, quatRotate } from '../core/xform.mjs';
 import { Arc, feet, G, inOutSine, keyPath, lerp, lerp3, outCubic, outQuart, pathFn, wield } from '../combat-kit.mjs';
 import { pivotX } from '../helpers.mjs';
@@ -266,7 +266,7 @@ export const Light1 = clip('Light1', { length: 0.62, ...ARMED, attack: 'Light1',
     },
   });
   c.marker(0.125, 'SwingStart', { slash: 'Diagonal' });
-  c.marker(0.115, 'HitStart');
+  c.marker(0.125, 'HitStart');
   c.marker(0.19, 'HitEnd');
   c.marker(0.17, 'Stomp', { foot: 'Right' });
   c.marker(0.27, 'SwingEnd');
@@ -279,7 +279,7 @@ export const Light1 = clip('Light1', { length: 0.62, ...ARMED, attack: 'Light1',
 // go and points at the target, the right arm cocks the blade across the chest, then the hips
 // unwind to the right and the blade sweeps flat across at shoulder height while the left arm
 // is thrown back for balance. The front foot steps out and turns with the hips.
-const ARC2 = new Arc({ c: [0.28, 0.1, -0.2], r: 1.22, roll: 90, pitch: -8, bladeLead: 8 });
+const ARC2 = new Arc({ c: [0.4, 0.1, -0.28], r: 1.1, roll: 90, pitch: -8, bladeLead: 8 });
 export const Light2 = clip('Light2', { length: 0.58, ...ARMED, attack: 'Light2', reduce: true }, (c) => {
   const S = STANCE;
   const leftWind = { LeftShoulder: { r: [78, 0, 24] }, LeftElbow: { r: [24, 0, 0] }, LeftWrist: { r: [0, 0, -10] } };
@@ -301,7 +301,7 @@ export const Light2 = clip('Light2', { length: 0.58, ...ARMED, attack: 'Light2',
       {
         t: 0.08,
         body: { rp: [0.06, -0.4, 0.08], rr: [-8, 36, 0], wr: [-8, 24, 2], nr: [10, -56, 0] },
-        w: { arc: ARC2, theta: -15, lead: 6 },
+        w: { arc: ARC2, theta: -10, lead: -40 },
         left: leftWind,
         in: 'outCubic',
         lead: { nr: 0.02, hands: 0.01 },
@@ -309,12 +309,12 @@ export const Light2 = clip('Light2', { length: 0.58, ...ARMED, attack: 'Light2',
       {
         t: 0.095,
         body: { rp: [0.06, -0.45, 0.06], rr: [-8, 29, 0], wr: [-8, 28, 2], nr: [10, -56, 0] },
-        w: { arc: ARC2, theta: -18, lead: -14 },
+        w: { arc: ARC2, theta: -12, lead: -52 },
         left: leftWind,
       },
       {
         t: 0.12,
-        body: { rp: [0.02, -0.5, -0.04], rr: [-8, -6, 0], wr: [-6, -8, -2], nr: [8, 14, 0] },
+        body: { rp: [0.02, -0.5, -0.1], rr: [-12, -6, 0], wr: [-8, -8, -2], nr: [12, 14, 0] },
         w: { arc: ARC2, theta: 95, lead: 6 },
         left: { LeftShoulder: { r: [20, 0, -40] }, LeftElbow: { r: [30, 0, 0] }, LeftWrist: { r: [0, 0, 0] } },
         lead: { rr: 0.012, rp: 0.01, wr: 0.004, nr: 0.016, hands: 0.008 },
@@ -386,7 +386,7 @@ function hopPath(t0, t1, p0, p1, h, n = 10) {
 // feet: the rising cut (low right -> high left) launches the target while the body leaves the
 // ground, the left hand lets go and is thrown down for balance, legs tuck, and the landing is
 // absorbed with the blade still high before settling back to chudan.
-const ARC3 = new Arc({ c: [0.0, 0.22, -0.5], r: 1.05, roll: -140, bladeLead: 6 });
+const ARC3 = new Arc({ c: [0.0, 0.2, -0.4], r: 0.95, roll: -140, bladeLead: 6 });
 export const Light3 = clip('Light3', { length: 0.64, ...ARMED, attack: 'Light3', visualLift: true, reduce: true }, (c) => {
   const S = STANCE;
   const leftThrow = { LeftShoulder: { r: [-50, 0, -42] }, LeftElbow: { r: [16, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
@@ -416,7 +416,7 @@ export const Light3 = clip('Light3', { length: 0.64, ...ARMED, attack: 'Light3',
       },
       {
         t: 0.14,
-        body: { rp: [0.0, -0.18, -0.04], rr: [-2, 8, 0], wr: [0, 2, 2], nr: [4, -14, 0] },
+        body: { rp: [0.0, -0.2, -0.14], rr: [-10, 8, 0], wr: [-6, 2, 2], nr: [12, -14, 0] },
         w: { arc: ARC3, theta: 92, lead: 6 },
         lead: { rr: 0.012, rp: 0.012, wr: 0.004, nr: 0.016 },
       },
@@ -487,8 +487,8 @@ export const Light3 = clip('Light3', { length: 0.64, ...ARMED, attack: 'Light3',
 // spots the target. Over the last quarter turn the left hand regrips and the blade rises
 // overhead; the character lands in a wide stance and slams a diagonal cleave down to the
 // ground (finisher), holds the zanshin, then draws the rear foot up into chudan.
-const ARC4 = new Arc({ c: [0, 0.18, -0.1], r: 1.05, roll: -90, pitch: 4, bladeLead: 4 });
-const ARC4F = new Arc({ c: [0.0, 0.3, -0.7], r: 1.25, roll: -28, bladeLead: 6 });
+const ARC4 = new Arc({ c: [0, 0.45, -0.1], r: 2.05, roll: -90, pitch: 4, bladeLead: 4 });
+const ARC4F = new Arc({ c: [0.0, 0.05, -0.6], r: 1.05, roll: -28, bladeLead: 6 });
 export const Light4 = clip('Light4', { length: 1.05, ...ARMED, attack: 'Light4', visualLift: true, reduce: true }, (c) => {
   const S = STANCE;
   const point = { LeftShoulder: { r: [88, 0, 34] }, LeftElbow: { r: [6, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
@@ -550,36 +550,36 @@ export const Light4 = clip('Light4', { length: 1.05, ...ARMED, attack: 'Light4',
       },
       {
         t: 0.41,
-        body: { rp: [0.0, -0.5, -0.02], rr: [-8, 340, 0], wr: [-6, -16, -4], nr: [8, 32, 0] },
+        body: { rp: [0.0, -0.3, -0.02], rr: [-6, 340, 0], wr: [-4, -16, -4], nr: [6, 32, 0] },
         w: { arc: ARC4F, theta: -38, lead: 14 },
         lead: { hands: -0.01 },
       },
       {
         t: 0.425,
-        body: { rp: [0.0, -0.66, -0.04], rr: [-10, 346, 0], wr: [-6, -22, -4], nr: [10, 30, 0] },
+        body: { rp: [0.0, -0.45, -0.04], rr: [-8, 346, 0], wr: [-4, -22, -4], nr: [8, 30, 0] },
         w: { arc: ARC4F, theta: -42, lead: -12 },
       },
       {
         t: 0.47,
-        body: { rp: [0.0, -0.84, -0.1], rr: [-18, 368, 0], wr: [-12, 0, 2], nr: [16, -10, 0] },
+        body: { rp: [0.0, -0.6, -0.1], rr: [-16, 368, 0], wr: [-12, 0, 2], nr: [14, -10, 0] },
         w: { arc: ARC4F, theta: 80, lead: 4 },
-        lead: { rr: 0.012, rp: 0.01, nr: 0.016 },
+        lead: { rr: 0.012, nr: 0.016 },
       },
       {
         t: 0.52,
-        body: { rp: [0.0, -0.98, -0.16], rr: [-26, 380, 2], wr: [-14, 16, 4], nr: [26, -36, 0] },
-        w: { arc: ARC4F, theta: 128, lead: 4 },
+        body: { rp: [0.0, -0.88, -0.16], rr: [-22, 380, 2], wr: [-11, 16, 4], nr: [24, -36, 0] },
+        w: { arc: ARC4F, theta: 134, lead: 2 },
         lead: { rr: 0.008, rp: 0.008 },
       },
       {
         t: 0.62,
-        body: { rp: [0.0, -1.0, -0.16], rr: [-27, 384, 2], wr: [-15, 18, 5], nr: [27, -40, 0] },
-        w: { arc: ARC4F, theta: 132, lead: -2 },
+        body: { rp: [0.0, -0.9, -0.16], rr: [-23, 384, 2], wr: [-12, 18, 5], nr: [25, -40, 0] },
+        w: { arc: ARC4F, theta: 136, lead: -2 },
       },
       {
         t: 0.8,
-        body: { rp: [0.0, -0.94, -0.13], rr: [-24, 383, 2], wr: [-14, 18, 4], nr: [24, -39, 0] },
-        w: { arc: ARC4F, theta: 133, lead: -4 },
+        body: { rp: [0.0, -0.85, -0.13], rr: [-21, 383, 2], wr: [-11, 18, 4], nr: [22, -39, 0] },
+        w: { arc: ARC4F, theta: 137, lead: -4 },
       },
       {
         t: 0.97,
@@ -623,37 +623,94 @@ export const Light4 = clip('Light4', { length: 1.05, ...ARMED, attack: 'Light4',
 });
 
 // ------------------------------------------------------------------ Heavy: charge + overhead cleave
-const ARCH = new Arc({ c: [0.05, 0.05, -0.65], r: 0.8, roll: -6, bladeLead: 4 });
+const ARCH = new Arc({ c: [0.05, -0.1, -0.65], r: 0.8, roll: -6, bladeLead: 4 });
 const CHARGE = { rp: [0.04, -0.62, 0.15], rr: [6, 8, 0], wr: [8, 6, 0], nr: [-4, -14, 0], R: [0.62, -0.75, -8, 0, 0], L: [-0.7, 0.7, 26, -18, 0] };
 // Jodan: hands above the forehead, blade angled back over the head.
-const CHARGE_W = { grip: [0.1, 0.86, -0.24], blade: [-0.05, 0.55, 0.83], edge: [0, 0.6, -1] };
+const CHARGE_W = { grip: [0.06, 0.62, -0.28], blade: [-0.05, 0.85, 0.52], edge: [0, 0.5, -1] };
 export const HeavyCharge = clip('HeavyCharge', { length: 1.0, loop: true, ...ARMED }, (c) => {
   const tremble = (k) => ({ ...CHARGE, rp: [CHARGE.rp[0] + 0.01 * k, CHARGE.rp[1] - 0.02 * Math.abs(k), CHARGE.rp[2]], rr: [CHARGE.rr[0] + k, CHARGE.rr[1], CHARGE.rr[2]] });
   key(c, 0, tremble(0), CHARGE_W);
-  key(c, 0.25, tremble(1), { ...CHARGE_W, grip: [0.1, 0.84, -0.25] });
-  key(c, 0.5, tremble(-0.5), { ...CHARGE_W, grip: [0.09, 0.86, -0.23] });
-  key(c, 0.75, tremble(0.8), { ...CHARGE_W, grip: [0.1, 0.83, -0.24] });
+  key(c, 0.25, tremble(1), { ...CHARGE_W, grip: [0.06, 0.6, -0.29] });
+  key(c, 0.5, tremble(-0.5), { ...CHARGE_W, grip: [0.05, 0.62, -0.27] });
+  key(c, 0.75, tremble(0.8), { ...CHARGE_W, grip: [0.06, 0.59, -0.28] });
 });
 
-export const HeavyRelease = clip('HeavyRelease', { length: 0.95, ...ARMED, attack: 'Heavy' }, (c) => {
-  const P = [
-    [0, 0, 0, 0],
-    [0.12, 0, 0, -2.6],
-    [0.3, 0, 0, -2.75],
-    [0.95, 0, 0, -2.8],
-  ];
-  keyPath(c, P);
-  const path = pathFn(P, 0.95);
-  const impact = { rp: [0, -1.12, -0.25], rr: [-30, 4, 0], wr: [-18, 2, 0], nr: [34, -6, 0], R: [0.62, -3.95, -6, 0, 0], L: [-0.72, -1.2, 26, -40, 0] };
-  key(c, 0, CHARGE, CHARGE_W);
-  key(c, 0.03, lerpSpec(CHARGE, impact, 0.15), { arc: ARCH, theta: -20 }, { offset: path(0.03) });
-  strike(c, 0.03, 0.12, lerpSpec(CHARGE, impact, 0.15), impact, { arc: ARCH, theta: -20 }, { arc: ARCH, theta: 140 }, { path, n: 5, ease: (x) => x * 0.7 + x * x * 0.3 });
-  key(c, 0.45, { ...impact, rp: [0, -1.08, -0.25] }, { arc: ARCH, theta: 139 }, { offset: path(0.45) });
-  key(c, 0.95, { ...STANCE, R: [0.5, -3.4, -8, 0, 0], L: [-0.62, -2.25, 28, -12, 0] }, STANCE_W, {
-    offset: path(0.95),
-    lag: { LeftShoulder: 0.04, Neck: 0.06 },
+export const HeavyRelease = clip('HeavyRelease', { length: 0.95, ...ARMED, attack: 'Heavy', visualLift: true, reduce: true }, (c) => {
+  // From jodan: a last cock of the blade behind the head, then a leaping fumikomi - the body
+  // flies forward and the blade comes over the top, slamming down so the tip bites the floor
+  // as both feet land (HeavyImpact). The impact pose is held while the shock rings out, then
+  // the blade is drawn back up and the rear foot slides in to chudan.
+  const C = CHARGE;
+  perform(c, {
+    path: [
+      [0, 0, 0, 0],
+      [0.035, 0, 0, 0.04],
+      ...hopPath(0.045, 0.12, [0, 0, -0.1], [0, 0, -2.55], 0.28, 6),
+      [0.12, 0, 0, -2.6],
+      [0.3, 0, 0, -2.75],
+      [0.95, 0, 0, -2.8],
+    ],
+    beats: [
+      { t: 0, body: C, w: CHARGE_W },
+      {
+        t: 0.035,
+        body: { rp: [0.04, -0.7, 0.2], rr: [9, 8, 0], wr: [11, 6, 0], nr: [-7, -14, 0] },
+        w: { arc: ARCH, theta: -24, lead: -8 },
+        in: 'outQuad',
+      },
+      {
+        t: 0.075,
+        body: { rp: [0.0, -0.32, -0.04], rr: [-8, 6, 0], wr: [-4, 4, 0], nr: [6, -10, 0] },
+        w: { arc: ARCH, theta: 40, lead: -4 },
+        lead: { rr: 0.01, rp: 0.01, nr: 0.015 },
+      },
+      {
+        t: 0.12,
+        body: { rp: [0.0, -0.9, -0.12], rr: [-20, 4, 0], wr: [-8, 2, 0], nr: [24, -6, 0] },
+        w: { arc: ARCH, theta: 127, lead: 4 },
+        lead: { rr: 0.008, rp: 0.006 },
+      },
+      {
+        t: 0.16,
+        body: { rp: [0.0, -0.84, -0.12], rr: [-18, 4, 0], wr: [-7, 2, 0], nr: [22, -6, 0] },
+        w: { arc: ARCH, theta: 126, lead: 2 },
+      },
+      {
+        t: 0.45,
+        body: { rp: [0.0, -0.88, -0.12], rr: [-19, 5, 0], wr: [-8, 3, 0], nr: [23, -8, 0] },
+        w: { arc: ARCH, theta: 125, lead: 0 },
+      },
+      {
+        t: 0.62,
+        body: { rp: [0.02, -0.66, -0.04], rr: [-14, 9, 0], wr: [-12, 8, 0], nr: [18, -16, 0] },
+        w: { arc: ARCH, theta: 104, lead: -6 },
+      },
+      {
+        t: 0.86,
+        body: { rp: [0.05, -0.36, 0], rr: [-5, 11.5, 0], wr: [-9, 12, 0], nr: [11, -21, 0] },
+        w: { ...STANCE_W, grip: [0.05, -0.15, -1.25] },
+        lead: { nr: 0.04, rr: 0.02, rp: 0.02, w: -0.02 },
+      },
+      { t: 0.95, body: STANCE, w: STANCE_W },
+    ],
+    feet: {
+      R: [
+        [0, C.R],
+        [0.035, [0.62, -0.75, -8, -18, 0]],
+        [0.075, [0.56, -1.9, -8, -24, 0.55], { air: true }],
+        [0.115, [0.5, -3.4, -8, 0, 0], { air: true }],
+      ],
+      L: [
+        [0, C.L],
+        [0.05, [-0.7, 0.7, 26, -32, 0]],
+        [0.09, [-0.66, -0.4, 26, -34, 0.45], { air: true }],
+        [0.13, [-0.64, -1.45, 26, -26, 0], { air: true }],
+        [0.5, [-0.64, -1.45, 26, -26, 0]],
+        [0.64, [-0.62, -2.25, 28, -12, 0], { drag: true }],
+      ],
+    },
   });
-  c.marker(0, 'SwingStart', { slash: 'Overhead' });
+  c.marker(0.035, 'SwingStart', { slash: 'Overhead' });
   c.marker(0.04, 'HitStart', { guardBreak: true });
   c.marker(0.12, 'HitEnd');
   c.marker(0.12, 'HeavyImpact');
@@ -679,19 +736,52 @@ export const AerialSlam = clip('AerialSlam', { length: 0.5, loop: true, ...ARMED
         RightKnee: { r: [-100, 0, 0] },
         RightAnkle: { r: [-20, 0, 0] },
       }),
-      { ...CHARGE_W, grip: [0.1, 0.86 + k * 0.03, -0.22] },
+      { ...CHARGE_W, grip: [0.06, 0.62 + k * 0.03, -0.28] },
     );
   c.key(0, dive(0));
   c.key(0.25, dive(1));
 });
 
-export const AerialSlamLand = clip('AerialSlamLand', { length: 0.85, ...ARMED, attack: 'Aerial' }, (c) => {
-  const pre = { rp: [0, 0.05, 0], rr: [-20, 0, 0], wr: [4, 0, 0], nr: [12, 0, 0], R: [0.5, -0.6, -6, 0, 0.6], L: [-0.6, 0.3, 20, 0, 0.8] };
-  const impact = { rp: [0, -1.25, -0.1], rr: [-34, 0, 0], wr: [-18, 0, 0], nr: [38, 0, 0], R: [0.66, -1.0, -10, 0, 0], L: [-0.62, 0.8, 22, -50, 0.1] };
-  key(c, 0, pre, CHARGE_W);
-  strike(c, 0, 0.07, pre, impact, { arc: ARCA, theta: -15 }, { arc: ARCA, theta: 140 }, { n: 4, ease: (x) => x });
-  key(c, 0.4, { ...impact, rp: [0, -1.2, -0.1] }, { arc: ARCA, theta: 139 });
-  key(c, 0.85, STANCE, STANCE_W, { lag: { LeftShoulder: 0.04, Neck: 0.05 } });
+export const AerialSlamLand = clip('AerialSlamLand', { length: 0.85, ...ARMED, attack: 'Aerial', reduce: true }, (c) => {
+  // Touches down from the dive: the blade slams through overhead as the legs absorb the landing
+  // into a kneeling crouch (left knee to the floor), tip into the ground; a heavy hold, then a
+  // push up through the right leg back to chudan.
+  perform(c, {
+    beats: [
+      { t: 0, body: { rp: [0, 0.05, 0], rr: [-20, 0, 0], wr: [4, 0, 0], nr: [12, 0, 0] }, w: { arc: ARCA, theta: -15, lead: -8 } },
+      {
+        t: 0.07,
+        body: { rp: [0, -1.22, -0.1], rr: [-32, 0, 0], wr: [-16, 0, 0], nr: [36, 0, 0] },
+        w: { arc: ARCA, theta: 132, lead: 4 },
+        in: (x) => x * 0.75 + x * x * 0.25,
+        lead: { rp: 0.006, rr: 0.006 },
+      },
+      { t: 0.12, body: { rp: [0, -1.15, -0.1], rr: [-30, 0, 0], wr: [-15, 0, 0], nr: [34, 0, 0] }, w: { arc: ARCA, theta: 131, lead: 2 } },
+      { t: 0.4, body: { rp: [0, -1.18, -0.1], rr: [-31, 1, 0], wr: [-16, 1, 0], nr: [35, -1, 0] }, w: { arc: ARCA, theta: 130, lead: 0 } },
+      { t: 0.56, body: { rp: [0.03, -0.7, -0.04], rr: [-14, 8, 0], wr: [-12, 8, 0], nr: [18, -14, 0] }, w: { arc: ARCA, theta: 104, lead: -6 } },
+      {
+        t: 0.77,
+        body: { rp: [0.05, -0.36, 0], rr: [-5, 11.5, 0], wr: [-9, 12, 0], nr: [11, -21, 0] },
+        w: { ...STANCE_W, grip: [0.05, -0.15, -1.25] },
+        lead: { nr: 0.04, rr: 0.02, rp: 0.02, w: -0.02 },
+      },
+      { t: 0.85, body: STANCE, w: STANCE_W },
+    ],
+    feet: {
+      R: [
+        [0, [0.5, -0.6, -6, -14, 0.55]],
+        [0.05, [0.66, -1.0, -10, 0, 0], { air: true }],
+        [0.58, [0.66, -1.0, -10, 0, 0]],
+        [0.7, [0.5, -0.6, -8, 0, 0]],
+      ],
+      L: [
+        [0, [-0.6, 0.3, 20, -10, 0.75]],
+        [0.07, [-0.62, 0.8, 22, -50, 0.1], { air: true }],
+        [0.42, [-0.62, 0.8, 22, -50, 0.1]],
+        [0.56, [-0.62, 0.55, 28, -12, 0]],
+      ],
+    },
+  });
   c.marker(0, 'SwingStart', { slash: 'Overhead' });
   c.marker(0.0, 'HitStart', { slam: true });
   c.marker(0.07, 'SlamImpact');
@@ -701,33 +791,86 @@ export const AerialSlamLand = clip('AerialSlamLand', { length: 0.85, ...ARMED, a
 });
 
 // ------------------------------------------------------------------ Lunge (dash thrust)
-export const Lunge = clip('Lunge', { length: 0.7, ...ARMED, attack: 'Lunge' }, (c) => {
-  const P = [
-    [0, 0, 0, 0],
-    [0.05, 0, 0, 0.1],
-    [0.16, 0, 0, -6.5],
-    [0.3, 0, 0, -8.6],
-    [0.7, 0, 0, -9.0],
-  ];
-  keyPath(c, P);
-  const path = pathFn(P, 0.7);
-  const coil = { rp: [0.1, -0.62, 0.15], rr: [-18, 24, 0], wr: [-10, 22, 0], nr: [22, -40, 0], R: [0.5, -0.4, -6, 0, 0], L: [-0.64, 0.75, 30, -16, 0] };
+const LUNGE_PATH = [
+  [0, 0, 0, 0],
+  [0.05, 0, 0, 0.1],
+  [0.16, 0, 0, -6.5],
+  [0.3, 0, 0, -8.6],
+  [0.7, 0, 0, -9.0],
+];
+// A foot skidding with the body: keeps `rel` = [x, z relative to the root, yaw, pitch, lift]
+// while the root motion carries it from t0 to t1.
+function skid(t0, t1, rel, P, n = 8) {
+  const at = pathFn(P, P[P.length - 1][0]);
+  const out = [];
+  for (let i = 1; i <= n; i++) {
+    const t = lerp(t0, t1, i / n);
+    const o = at(t);
+    out.push([t, [rel[0] + o[0], rel[1] + o[2], rel[2], rel[3], rel[4]], { air: true, linear: true }]);
+  }
+  return out;
+}
+export const Lunge = clip('Lunge', { length: 0.7, ...ARMED, attack: 'Lunge', reduce: true }, (c) => {
+  // Coils back with the blade pulled to the right hip, then explodes into a low flying dash:
+  // both feet leave the floor, the thrust lands at full extension as the front foot touches
+  // down, and the body skids to a stop in a deep lunge with the rear knee nearly on the floor.
+  const leftCock = { LeftShoulder: { r: [50, 0, -10] }, LeftElbow: { r: [60, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
+  const leftBack = { LeftShoulder: { r: [-30, 0, -78] }, LeftElbow: { r: [10, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
   const coilW = { grip: [0.95, -0.42, 0.05], blade: [-0.1, 0.06, -1], edge: [0, -1, 0] };
-  const thrust = { rp: [0, -1.02, -0.3], rr: [-24, 38, 0], wr: [-12, 28, 0], nr: [28, -60, 0], R: [0.42, -8.2, -2, 0, 0], L: [-0.85, -4.2, 40, -60, 0] };
   const thrustW = { grip: [0.2, 0.05, -1.75], blade: [-0.04, 0.02, -1], edge: [0.05, -1, 0] };
-  const leftBack = { LeftShoulder: { r: [-20, 0, -80] }, LeftElbow: { r: [10, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
-  key(c, 0, STANCE, STANCE_W);
-  key(c, 0.05, coil, coilW, { two: false, left: { LeftShoulder: { r: [50, 0, -10] }, LeftElbow: { r: [60, 0, 0] }, LeftWrist: { r: [0, 0, 0] } }, offset: path(0.05) });
-  strike(c, 0.05, 0.13, coil, thrust, coilW, thrustW, {
-    n: 4,
-    two: false,
-    path,
-    leftA: { LeftShoulder: { r: [50, 0, -10] }, LeftElbow: { r: [60, 0, 0] }, LeftWrist: { r: [0, 0, 0] } },
-    leftB: leftBack,
-    ease: outQuart,
+  const thrust = { rp: [0, -1.0, -0.3], rr: [-24, 38, 0], wr: [-12, 28, 0], nr: [28, -60, 0] };
+  perform(c, {
+    path: LUNGE_PATH,
+    beats: [
+      { t: 0, body: STANCE, w: STANCE_W },
+      {
+        t: 0.05,
+        body: { rp: [0.1, -0.62, 0.15], rr: [-18, 24, 0], wr: [-10, 22, 0], nr: [22, -40, 0] },
+        w: coilW,
+        left: leftCock,
+        in: 'outCubic',
+      },
+      {
+        t: 0.13,
+        body: thrust,
+        w: thrustW,
+        left: leftBack,
+        in: 'outQuart',
+        lead: { rr: 0.012, rp: 0.01, nr: 0.016, w: -0.006 },
+      },
+      { t: 0.32, body: { ...thrust, rp: [0, -1.04, -0.32] }, w: { ...thrustW, grip: [0.2, 0.03, -1.72] }, left: leftBack },
+      { t: 0.46, body: { rp: [0.02, -0.7, -0.12], rr: [-14, 26, 0], wr: [-10, 20, 0], nr: [18, -40, 0] }, w: { ...thrustW, grip: [0.3, -0.25, -1.72] }, left: leftBack },
+      {
+        t: 0.62,
+        body: { rp: [0.05, -0.36, 0], rr: [-5, 11.5, 0], wr: [-9, 12, 0], nr: [11, -21, 0] },
+        w: { ...STANCE_W, grip: [0.05, -0.15, -1.25] },
+        lead: { nr: 0.04, rr: 0.02, rp: 0.02, w: -0.015 },
+      },
+      { t: 0.7, body: STANCE, w: STANCE_W },
+    ],
+    feet: {
+      R: [
+        [0, STANCE.R],
+        [0.03, [0.5, -0.4, -6, 0, 0]],
+        [0.06, [0.5, -0.4, -6, -22, 0]],
+        [0.1, [0.46, -3.3, -4, -14, 0.3], { air: true }],
+        [0.155, [0.42, -7.6, -2, 0, 0], { air: true }],
+        ...skid(0.155, 0.3, [0.45, -1.1, -4, 0, 0], LUNGE_PATH),
+        [0.5, [0.45, -9.55, -6, 0, 0]],
+        [0.6, [0.5, -9.6, -8, 0, 0]],
+      ],
+      L: [
+        [0, STANCE.L],
+        [0.04, [-0.64, 0.75, 30, -16, 0]],
+        [0.07, [-0.64, 0.75, 30, -36, 0]],
+        [0.11, [-0.72, -2.9, 34, -40, 0.4], { air: true }],
+        [0.17, [-0.8, -5.45, 38, -50, 0.05], { air: true }],
+        ...skid(0.17, 0.3, [-0.8, 1.3, 38, -50, 0.05], LUNGE_PATH),
+        [0.42, [-0.8, -7.3, 38, -50, 0.05]],
+        [0.56, [-0.62, -8.45, 28, -12, 0]],
+      ],
+    },
   });
-  key(c, 0.32, { ...thrust, rp: [0, -1.05, -0.32] }, { ...thrustW, grip: [0.2, 0.03, -1.72] }, { two: false, left: leftBack, offset: path(0.32) });
-  key(c, 0.7, { ...STANCE, R: [0.5, -9.6, -8, 0, 0], L: [-0.62, -8.45, 28, -12, 0] }, STANCE_W, { offset: path(0.7), lag: { LeftShoulder: 0.05, Neck: 0.05 } });
   c.marker(0.04, 'SwingStart', { slash: 'Thrust' });
   c.marker(0.06, 'HitStart');
   c.marker(0.22, 'HitEnd');
@@ -751,38 +894,112 @@ export const BlockHit = clip('BlockHit', { length: 0.34, ...ARMED }, (c) => {
   c.marker(0, 'BlockImpact');
 });
 
-const ARC_PARRY = new Arc({ c: [0.05, 0.25, -0.95], r: 0.42, yaw: -90, bladeLead: 0 });
-export const Parry = clip('Parry', { length: 0.48, ...ARMED }, (c) => {
-  const set = { ...GUARD, rr: [-4, 22, 0], wr: [-4, 18, 0], nr: [10, -32, 0] };
-  const snap = { ...GUARD, rp: [0.08, -0.48, 0.0], rr: [-6, -20, 0], wr: [-8, -24, 0], nr: [12, 34, 0] };
-  key(c, 0, GUARD, GUARD_W);
-  key(c, 0.03, set, { arc: ARC_PARRY, theta: -25 }, { ease: 'inQuad' });
-  strike(c, 0.03, 0.08, set, snap, { arc: ARC_PARRY, theta: -25 }, { arc: ARC_PARRY, theta: 105 }, { n: 4, ease: outQuart });
-  key(c, 0.22, { ...snap, rr: [-6, -23, 0] }, { arc: ARC_PARRY, theta: 112 });
-  key(c, 0.48, STANCE, STANCE_W, { lag: { LeftShoulder: 0.04, Neck: 0.04 } });
+const ARC_PARRY = new Arc({ c: [0.05, 0.22, -0.85], r: 0.42, yaw: -90, bladeLead: 0 });
+export const Parry = clip('Parry', { length: 0.48, ...ARMED, reduce: true }, (c) => {
+  // A tiny set against the incoming blade, then a sharp hip turn snaps the katana out to the
+  // right, knocking the attack wide; the front foot pivots with the hips. Held for a beat
+  // (the riposte window), then back to chudan.
+  perform(c, {
+    beats: [
+      { t: 0, body: GUARD, w: GUARD_W },
+      { t: 0.03, body: { ...GUARD, rr: [-4, 22, 0], wr: [-4, 18, 0], nr: [10, -32, 0] }, w: { arc: ARC_PARRY, theta: -25, lead: -6 }, in: 'inQuad' },
+      {
+        t: 0.08,
+        body: { rp: [0.08, -0.48, 0.0], rr: [-6, -20, 0], wr: [-8, -24, 0], nr: [12, 34, 0] },
+        w: { arc: ARC_PARRY, theta: 105, lead: 6 },
+        in: 'outQuart',
+        lead: { rr: 0.008, rp: 0.006, nr: 0.01 },
+      },
+      { t: 0.22, body: { rp: [0.08, -0.5, 0.0], rr: [-6, -23, 0], wr: [-8, -26, 0], nr: [12, 37, 0] }, w: { arc: ARC_PARRY, theta: 112, lead: 2 } },
+      {
+        t: 0.42,
+        body: { rp: [0.05, -0.36, 0], rr: [-5, 11.5, 0], wr: [-9, 12, 0], nr: [11, -21, 0] },
+        w: { ...STANCE_W, grip: [0.05, -0.15, -1.25] },
+        lead: { nr: 0.04, rr: 0.02, rp: 0.02, w: -0.015 },
+      },
+      { t: 0.48, body: STANCE, w: STANCE_W },
+    ],
+    feet: {
+      R: [
+        [0, GUARD.R],
+        [0.03, GUARD.R],
+        [0.09, [0.5, -0.5, -24, 0, 0]],
+        [0.26, [0.5, -0.5, -24, 0, 0]],
+        [0.4, [0.5, -0.6, -8, 0, 0]],
+      ],
+      L: [
+        [0, GUARD.L],
+        [0.3, GUARD.L],
+        [0.42, STANCE.L],
+      ],
+    },
+  });
   c.marker(0.02, 'SwingStart', { slash: 'Parry' });
   c.marker(0.05, 'Parry');
   c.marker(0.2, 'SwingEnd');
 });
 
-// Victim of a parry / guard break: arms flung up, staggering back.
+// Victim of a parry / guard break: arms flung up, staggering back: the rear foot catches the
+// weight first, then the front foot, then the guard comes back down.
 function staggerClip(name, severity) {
-  return clip(name, { length: 0.9 + severity * 0.2, ...ARMED }, (c) => {
-    const P = [
-      [0, 0, 0, 0],
-      [0.18, 0, 0, 1.2 + severity],
-      [0.9, 0, 0, 1.5 + severity],
-    ];
-    keyPath(c, P);
-    const path = pathFn(P, 0.9 + severity * 0.2);
-    const flung = { rp: [0, -0.3, 0.2], rr: [16 + severity * 8, -10, 0], wr: [14 + severity * 6, -6, 0], nr: [-18, 10, 0], R: [0.5, -0.2, -8, -10, 0.3], L: [-0.62, 1.5 + severity, 28, -12, 0] };
-    const flungW = { grip: [0.9, 1.2, -0.3], blade: [0.3, 0.9, 0.3], edge: [0, 0, -1] };
-    const left = { LeftShoulder: { r: [100, 0, -70] }, LeftElbow: { r: [20, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
-    key(c, 0, STANCE, STANCE_W);
-    key(c, 0.08, flung, flungW, { two: false, left, ease: 'outQuart', offset: path(0.08) });
-    const recover = { ...flung, rp: [0, -0.62, 0.1], rr: [4, -6, 0], wr: [4, -4, 0], nr: [0, 4, 0], R: [0.5, 1.0 + severity, -8, 0, 0], L: [-0.62, 2.0 + severity, 28, -12, 0] };
-    key(c, 0.5, recover, { grip: [0.6, -0.2, -0.8], blade: [0.2, 0.3, -1], edge: [0, -1, 0] }, { two: false, left: { LeftShoulder: { r: [20, 0, -30] }, LeftElbow: { r: [30, 0, 0] }, LeftWrist: { r: [0, 0, 0] } }, offset: path(0.5) });
-    key(c, 0.9 + severity * 0.2, { ...STANCE, R: [0.5, 0.9 + severity, -8, 0, 0], L: [-0.62, 2.05 + severity, 28, -12, 0] }, STANCE_W, { offset: path(0.9 + severity * 0.2) });
+  const L = 0.9 + severity * 0.2;
+  return clip(name, { length: L, ...ARMED, reduce: true }, (c) => {
+    const s = severity;
+    const flungLeft = { LeftShoulder: { r: [100, 0, -70] }, LeftElbow: { r: [20, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
+    const lowLeft = { LeftShoulder: { r: [20, 0, -30] }, LeftElbow: { r: [30, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
+    perform(c, {
+      path: [
+        [0, 0, 0, 0],
+        [0.1, 0, 0, 0.55 + s * 0.4],
+        [0.22, 0, 0, 1.2 + s],
+        [0.5, 0, 0, 1.45 + s],
+        [L, 0, 0, 1.5 + s],
+      ],
+      beats: [
+        { t: 0, body: STANCE, w: STANCE_W },
+        {
+          t: 0.08,
+          body: { rp: [0, -0.3, 0.2], rr: [16 + s * 8, -10, 0], wr: [14 + s * 6, -6, 0], nr: [-18, 10, 0] },
+          w: { grip: [0.95, 0.3, -0.1], blade: [0.35, 0.9, 0.25], edge: [0, 0, -1] },
+          left: flungLeft,
+          in: 'outQuart',
+          lead: { nr: -0.02, hands: -0.01 },
+        },
+        {
+          t: 0.24,
+          body: { rp: [0, -0.48, 0.18], rr: [10 + s * 6, -8, 0], wr: [9 + s * 4, -5, 0], nr: [-10, 8, 0] },
+          w: { grip: [0.85, 0.7, -0.4], blade: [0.3, 0.8, -0.2], edge: [0, -0.2, -1] },
+          left: flungLeft,
+        },
+        {
+          t: 0.5,
+          body: { rp: [0, -0.62, 0.1], rr: [4, -6, 0], wr: [4, -4, 0], nr: [0, 4, 0] },
+          w: { grip: [0.6, -0.2, -0.8], blade: [0.2, 0.3, -1], edge: [0, -1, 0] },
+          left: lowLeft,
+        },
+        {
+          t: L - 0.1,
+          body: { rp: [0.05, -0.36, 0], rr: [-5, 11.5, 0], wr: [-9, 12, 0], nr: [11, -21, 0] },
+          w: { ...STANCE_W, grip: [0.05, -0.15, -1.25] },
+          lead: { nr: 0.04, rr: 0.02 },
+        },
+        { t: L, body: STANCE, w: STANCE_W },
+      ],
+      feet: {
+        L: [
+          [0, STANCE.L],
+          [0.02, STANCE.L],
+          [0.15, [-0.62, 1.85 + s, 28, -12, 0], { h: 0.22 }],
+          [0.4, [-0.62, 1.85 + s, 28, -12, 0]],
+          [0.52, [-0.62, 2.05 + s, 28, -12, 0]],
+        ],
+        R: [
+          [0, STANCE.R],
+          [0.04, [0.5, -0.6, -8, -18, 0]],
+          [0.22, [0.5, 0.9 + s, -8, 0, 0], { h: 0.3 }],
+        ],
+      },
+    });
     c.marker(0, 'Stagger', { severity });
   });
 }
@@ -790,86 +1007,163 @@ export const Parried = staggerClip('Parried', 0);
 export const GuardBreak = staggerClip('GuardBreak', 0.6);
 
 // ------------------------------------------------------------------ Draw (iai) / Sheath
-function sheathGrip(p) {
-  // Right hand on the sheathed handle (grip frame == sheathed weapon frame).
+// Sheathed katana frame for a pose (it moves with the hips).
+const SHEATHED = (p) => {
   const f = sheathFrame(p);
-  const handRot = quatMul(f.q, eulerQuat([90, 0, 0]));
-  return reach(p, 'Right', f.p, { rot: handRot, wRot: 1.2 });
-}
+  return { grip: f.p, blade: quatRotate(f.q, [0, 1, 0]), edge: quatRotate(f.q, [0, 0, -1]) };
+};
+// Drawn `d` studs out of the scabbard along its axis.
+const drawnOut = (d) => (p) => {
+  const f = SHEATHED(p);
+  return { ...f, grip: f.grip.map((x, i) => x - f.blade[i] * d) };
+};
+// Noto: the tip meets the scabbard mouth coming down from the upper right and the blade slides
+// home while turning into line with the scabbard (s = 1: sheathed). The katana is far longer
+// than an R15 arm, so the noto starts with part of the blade already in (s ~ 0.35).
+const NOTO_DIR = (() => {
+  const v = [-1.0, -1.0, 0.35];
+  const l = Math.hypot(...v);
+  return v.map((x) => x / l);
+})();
+const notoFrame = (s) => (p) => {
+  const f = SHEATHED(p);
+  const dir0 = quatRotate(fk(p).LowerTorso.q, NOTO_DIR);
+  const k = s * s * (3 - 2 * s);
+  const raw = dir0.map((x, i) => x + (f.blade[i] - x) * k);
+  const l = Math.hypot(...raw);
+  const dir = raw.map((x) => x / l);
+  const mouth = f.grip.map((x, i) => x + f.blade[i] * 0.5);
+  const back = 3.55 - 3.05 * s;
+  return { grip: mouth.map((m, i) => m - dir[i] * back), blade: dir, edge: f.edge };
+};
 
-const ARC_DRAW = new Arc({ c: [0.05, -0.32, -0.25], r: 1.2, roll: 90, pitch: -4, bladeLead: 10 });
-export const Draw = clip('Draw', { length: 0.62, weapon: 'sheath' }, (c) => {
-  const idle = (() => {
-    let p = pose({
-      Root: { p: [0.02, -0.12, 0], r: [-2, 8, 0] },
-      Waist: { r: [-2, -6, 1] },
-      Neck: { r: [0, -2, 0] },
-      RightShoulder: { r: [4, -4, 6] },
-      RightElbow: { r: [14, 0, 0] },
-      RightWrist: { r: [6, 0, -4] },
-    });
-    p = feet(p, { Left: [-0.62, -0.22, 10, 0, 0], Right: [0.62, 0.24, -16, 0, 0] });
-    return holdScabbard(p, { along: 0.78, roll: -20 });
-  })();
-  c.key(0, idle);
-  // Reach across and grip the handle; left thumb pushes the guard out (koiguchi wo kiru).
-  const gripSpec = { rp: [0.0, -0.32, 0.05], rr: [-8, 26, 0], wr: [-10, 22, 0], nr: [10, -32, 0], R: [0.55, -0.45, -8, 0, 0], L: [-0.62, 0.3, 24, -8, 0] };
-  let gripPose = body(gripSpec);
-  gripPose = holdScabbard(gripPose, { along: 0.62, roll: -20 });
-  gripPose = sheathGrip(gripPose);
-  c.key(0.15, gripPose, { ease: 'inOutSine' });
-  // Clear the scabbard: blade still trailing back-left along the saya, hand pulled forward.
-  const clearSpec = { ...gripSpec, rp: [0.02, -0.4, 0.0], rr: [-8, 20, 0], wr: [-8, 14, 0], nr: [10, -24, 0] };
+// Unarmed idle (matches Idle's first frame) and the hand on the handle at the left hip.
+const IDLE_BODY = { rp: [0.02, -0.12, 0], rr: [-2, 8, 0], wr: [-2, -6, 1], nr: [0, -2, 0] };
+const IDLE_FEET = { L: [-0.62, -0.22, 10, 0, 0], R: [0.62, 0.24, -16, 0, 0] };
+const REST_R = { RightShoulder: { r: [4, -4, 6] }, RightElbow: { r: [14, 0, 0] }, RightWrist: { r: [6, 0, -4] } };
+const GRIP_BODY = { rp: [0.0, -0.4, 0.05], rr: [-8, 22, 0], wr: [-14, 20, 2], nr: [14, -32, 0] };
+
+const ARC_DRAW = new Arc({ c: [0.3, -0.12, -0.42], r: 0.9, roll: 90, pitch: -6, bladeLead: 8 });
+export const Draw = clip('Draw', { length: 0.62, weapon: 'sheath', reduce: true }, (c) => {
+  // Reach across and take the handle (left thumb on the guard), step in with the right foot,
+  // pull the blade out along the scabbard, then the hips snap round and the blade flashes out
+  // flat across the front (nukitsuke), the left hand pulling back to the hip.
   const leftPull = { LeftShoulder: { r: [-30, 0, -26] }, LeftElbow: { r: [40, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
-  key(c, 0.19, clearSpec, { arc: ARC_DRAW, theta: -55 }, { two: false, left: leftPull });
-  // Nukitsuke: horizontal flash from the left hip through the front to the right.
-  const flash = { rp: [0.06, -0.5, -0.08], rr: [-8, -24, 0], wr: [-6, -26, 0], nr: [10, 36, 0], R: [0.6, -0.8, -14, 0, 0], L: [-0.62, 0.42, 26, -14, 0] };
   const leftOpen = { LeftShoulder: { r: [-20, 0, -60] }, LeftElbow: { r: [20, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
-  strike(c, 0.19, 0.27, clearSpec, flash, { arc: ARC_DRAW, theta: -55 }, { arc: ARC_DRAW, theta: 168 }, {
-    two: false,
-    leftA: leftPull,
-    leftB: leftOpen,
-    ease: outCubic,
+  perform(c, {
+    path: [
+      [0, 0, 0, 0],
+      [0.1, 0, 0, -0.05],
+      [0.22, 0, 0, -0.5],
+      [0.4, 0, 0, -0.55],
+      [0.62, 0, 0, -0.55],
+    ],
+    beats: [
+      { t: 0, body: IDLE_BODY, right: REST_R, scabbard: { along: 0.78 } },
+      { t: 0.13, body: GRIP_BODY, w: SHEATHED, scabbard: { along: 0.62 }, in: 'inOutSine', lead: { nr: 0.03 } },
+      {
+        t: 0.165,
+        body: { rp: [0.02, -0.46, 0.02], rr: [-8, 20, 0], wr: [-14, 18, 2], nr: [14, -30, 0] },
+        w: drawnOut(0.75),
+        scabbard: { along: 0.62 },
+      },
+      {
+        t: 0.19,
+        body: { rp: [0.04, -0.5, -0.02], rr: [-8, 16, 0], wr: [-10, 14, 0], nr: [12, -24, 0] },
+        w: { arc: ARC_DRAW, theta: 25, lead: -10 },
+        left: leftPull,
+      },
+      {
+        t: 0.22,
+        body: { rp: [0.06, -0.52, -0.12], rr: [-12, -8, 0], wr: [-10, -10, 0], nr: [16, 16, 0] },
+        w: { arc: ARC_DRAW, theta: 90, lead: 6 },
+        left: leftOpen,
+        lead: { rr: 0.01, rp: 0.008, nr: 0.012 },
+      },
+      {
+        t: 0.27,
+        body: { rp: [0.06, -0.54, -0.08], rr: [-8, -26, 0], wr: [-6, -28, 0], nr: [10, 40, 0] },
+        w: { arc: ARC_DRAW, theta: 168, lead: 10 },
+        left: leftOpen,
+      },
+      {
+        t: 0.36,
+        body: { rp: [0.06, -0.55, -0.08], rr: [-9, -30, 0], wr: [-7, -30, 0], nr: [10, 44, 0] },
+        w: { arc: ARC_DRAW, theta: 176, lead: 4 },
+        left: leftOpen,
+      },
+      {
+        t: 0.54,
+        body: { rp: [0.05, -0.36, 0], rr: [-5, 11.5, 0], wr: [-9, 12, 0], nr: [11, -21, 0] },
+        w: { ...STANCE_W, grip: [0.05, -0.15, -1.25] },
+        lead: { nr: 0.04, rr: 0.02, rp: 0.02, w: -0.015 },
+      },
+      { t: 0.62, body: STANCE, w: STANCE_W },
+    ],
+    feet: {
+      R: [
+        [0, IDLE_FEET.R],
+        [0.05, IDLE_FEET.R],
+        [0.2, [0.5, -1.15, -10, 0, 0], { h: 0.24 }],
+        [0.5, [0.5, -1.15, -10, 0, 0]],
+        [0.6, [0.5, -1.15, -8, 0, 0]],
+      ],
+      L: [
+        [0, IDLE_FEET.L],
+        [0.2, [-0.62, -0.22, 24, -14, 0]],
+        [0.36, [-0.62, -0.22, 24, -14, 0]],
+        [0.48, [-0.62, 0.0, 28, -12, 0]],
+      ],
+    },
   });
-  key(c, 0.36, { ...flash, rr: [-9, -28, 0] }, { arc: ARC_DRAW, theta: 176 }, { two: false, left: leftOpen });
-  key(c, 0.62, STANCE, STANCE_W, { lag: { LeftShoulder: 0.05, Neck: 0.05 } });
-  c.marker(0.15, 'WeaponAttach', { to: 'hand' });
-  c.marker(0.18, 'SwingStart', { slash: 'Draw' });
+  c.marker(0.13, 'WeaponAttach', { to: 'hand' });
+  c.marker(0.19, 'SwingStart', { slash: 'Draw' });
   c.marker(0.2, 'HitStart');
   c.marker(0.27, 'HitEnd');
   c.marker(0.34, 'SwingEnd');
 });
 
-export const Sheath = clip('Sheath', { length: 0.95, weapon: 'hand' }, (c) => {
-  key(c, 0, STANCE, STANCE_W);
-  // Chiburi: sharp flick down to the right.
-  const flick = { rp: [0.05, -0.42, 0], rr: [-6, -6, 0], wr: [-6, -10, 0], nr: [10, 6, 0], R: [0.55, -0.6, -8, 0, 0], L: [-0.62, 0.5, 28, -12, 0] };
-  key(c, 0.18, flick, { grip: [1.35, -0.55, -0.7], blade: [0.6, -0.35, -0.7], edge: [0.2, -1, 0] }, {
-    two: false,
-    left: { LeftShoulder: { r: [10, 0, -20] }, LeftElbow: { r: [40, 0, 0] }, LeftWrist: { r: [0, 0, 0] } },
-    ease: 'outQuart',
+export const Sheath = clip('Sheath', { length: 0.95, weapon: 'hand', reduce: true }, (c) => {
+  // Chiburi (a sharp flick to shed the blood), the left hand finds the scabbard mouth, the
+  // blade comes down from the upper right tip-first into the mouth and slides home (noto),
+  // then both hands relax into the unarmed idle.
+  const flick = { rp: [0.05, -0.42, 0], rr: [-6, -6, 0], wr: [-6, -10, 0], nr: [10, 6, 0] };
+  const flickW = { grip: [1.2, -0.45, -0.65], blade: [0.6, -0.35, -0.7], edge: [0.2, -1, 0] };
+  const leftFree = { LeftShoulder: { r: [10, 0, -20] }, LeftElbow: { r: [40, 0, 0] }, LeftWrist: { r: [0, 0, 0] } };
+  perform(c, {
+    beats: [
+      { t: 0, body: STANCE, w: STANCE_W },
+      { t: 0.16, body: flick, w: flickW, left: leftFree, in: 'outQuart', lead: { hands: 0.03 } },
+      { t: 0.26, body: { ...flick, rp: [0.05, -0.4, 0] }, w: { ...flickW, grip: [1.16, -0.4, -0.66] }, left: leftFree },
+      {
+        t: 0.42,
+        body: { rp: [0.02, -0.34, 0.04], rr: [-6, 18, 0], wr: [-10, 16, 0], nr: [12, -28, 0] },
+        w: notoFrame(0.35),
+        scabbard: { along: 0.5 },
+        lead: { hands: 0.04 },
+      },
+      {
+        t: 0.54,
+        body: { rp: [0.01, -0.38, 0.05], rr: [-7, 20, 0], wr: [-12, 18, 1], nr: [13, -30, 0] },
+        w: notoFrame(0.75),
+        scabbard: { along: 0.56 },
+      },
+      { t: 0.62, body: GRIP_BODY, w: notoFrame(1), scabbard: { along: 0.62 } },
+      { t: 0.95, body: IDLE_BODY, right: REST_R, scabbard: { along: 0.78 }, lead: { hands: -0.04 } },
+    ],
+    feet: {
+      R: [
+        [0, STANCE.R],
+        [0.64, STANCE.R],
+        [0.8, IDLE_FEET.R],
+      ],
+      L: [
+        [0, STANCE.L],
+        [0.76, STANCE.L],
+        [0.92, IDLE_FEET.L],
+      ],
+    },
   });
-  // Bring the blade across to the scabbard mouth.
-  let insert = pose({
-    Root: { p: [0.0, -0.25, 0.05], r: [-6, 20, 0] },
-    Waist: { r: [-8, 18, 0] },
-    Neck: { r: [14, -26, 0] },
-  });
-  insert = feet(insert, { Left: [-0.62, 0.3, 24, -8, 0], Right: [0.55, -0.45, -8, 0, 0] });
-  insert = holdScabbard(insert, { along: 0.62, roll: -20 });
-  insert = sheathGrip(insert);
-  c.key(0.62, insert, { ease: 'inOutSine' });
-  let rest = pose({
-    Root: { p: [0.02, -0.12, 0], r: [-2, 8, 0] },
-    Waist: { r: [-2, -6, 1] },
-    Neck: { r: [0, -2, 0] },
-    RightShoulder: { r: [4, -4, 6] },
-    RightElbow: { r: [14, 0, 0] },
-    RightWrist: { r: [6, 0, -4] },
-  });
-  rest = feet(rest, { Left: [-0.62, -0.22, 10, 0, 0], Right: [0.62, 0.24, -16, 0, 0] });
-  rest = holdScabbard(rest, { along: 0.78, roll: -20 });
-  c.key(0.95, rest, { lag: { RightShoulder: 0.05 } });
   c.marker(0.62, 'WeaponAttach', { to: 'sheath' });
   c.marker(0.62, 'SheathClick');
 });

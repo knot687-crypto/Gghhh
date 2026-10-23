@@ -317,6 +317,10 @@ function CharacterDriver:startSwing(marker, track)
 	-- Start frame = where the clip's origin is now: root position minus the root motion so far.
 	local yaw = self:yawFrame()
 	local rm = ClipLibrary.samplePosition(clip, "RootMotion", track.time) or Vector3.zero
+	if clip.meta.visualLift then
+		-- The body was lifted visually, not moved: the clip origin stays on the ground.
+		rm = Vector3.new(rm.X, 0, rm.Z)
+	end
 	local origin = self.root.Position - yaw:VectorToWorldSpace(rm * self.posScale)
 	local frame = CFrame.new(origin) * yaw
 	local clock = { t = track.time }
@@ -436,6 +440,14 @@ function CharacterDriver:update(dt: number, timeScale: number)
 	end
 
 	local pose = self.anim:evaluate()
+	-- Attacks move the body planar-only (gravity keeps it grounded); hops in their root motion
+	-- (Light3's launcher, Light4's spin, the heavy leap) are shown by lifting the pelvis.
+	if action and action.clip.meta.visualLift and pose.Root then
+		local rm = ClipLibrary.samplePosition(action.clip, "RootMotion", action.time)
+		if rm and rm.Y ~= 0 then
+			pose.Root = CFrame.new(0, rm.Y * action.weight, 0) * pose.Root
+		end
+	end
 	self.binding:apply(pose)
 	self.weapon:applyPose(pose.Weapon)
 

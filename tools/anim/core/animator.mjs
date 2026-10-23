@@ -58,6 +58,8 @@ export class Track {
     if (this.stopping) return;
     this.stopping = true;
     this.fadeTo(0, fade);
+    // A cut takes effect at once (even mid-update), so the next evaluation never mixes it in.
+    if (fade <= 0) this.weight = 0;
   }
 
   get length() {

@@ -58,9 +58,10 @@ export const R15 = {
     // the weapon's +Y (blade direction) points forward when the arm hangs at rest.
     { name: 'Weapon', part0: 'RightHand', part1: 'Weapon', c0: v(0, -0.15, 0), c0r: v(-90, 0, 0), c1: v(0, 0, 0) },
   ],
-  // Where the Weapon joint re-parents when the katana is sheathed at the left hip (edge up, handle
-  // forward). Part0 becomes LowerTorso and C0 becomes this frame.
-  sheath: { part0: 'LowerTorso', c0: v(-0.64, 0.17, -0.91), c0r: v(110.1, -1.76, 9.62) },
+  // Where the Weapon joint re-parents when the katana is sheathed at the left hip. Worn tachi-style
+  // (edge down and out) with the handle angled across toward the belly, so the right hand can
+  // reach and grip it exactly for the draw. Part0 becomes LowerTorso and C0 becomes this frame.
+  sheath: { part0: 'LowerTorso', c0: v(-0.219, 0.151, -0.952), c0r: v(-52.3, 35.8, 150.3) },
   // Sole height in HumanoidRootPart space when standing (HipHeight + half the root part).
   ground: -2.83,
 };

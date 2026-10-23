@@ -4,7 +4,8 @@
 
 	Layers: 0 locomotion (speed blended, phase synced) | 1 full-body actions | 2 upper-body overlay
 	| 3 additive (flinches, landings). After blending, a procedural pass adds lean into turns and
-	acceleration (pivoting at the feet) and hit-stop jitter.
+	acceleration (pivoting at the feet), full-body actions are inertialized (see Inertializer) and
+	hit-stop adds jitter.
 
 	Usage:
 		local anim = CharacterAnimator.new(Rig.R15)
@@ -39,6 +40,128 @@ local function damp(cur: number, vel: number, target: number, halfLife: number, 
 	return target + (change + temp) * exp, newVel
 end
 
+-- ---------------------------------------------------------------- inertialization
+-- Actions start and stop at once; the difference between the pose that was on screen and the
+-- new pose becomes a per-joint offset that decays to zero with a critically damped spring
+-- (inertialization, in Holden's spring form). The offset starts with the old motion's velocity
+-- minus the new one's, so movement carries through the switch instead of cross-fading through
+-- an in-between pose, and the new animation plays undiluted from its first frame.
+local INERT_SKIP = { RootMotion = true, Camera = true }
+local LN2 = math.log(2)
+
+-- Rotation vector (axis * angle, shortest arc) of a rotation.
+local function rotLog(r: CFrame): Vector3
+	local axis, angle = r:ToAxisAngle()
+	if angle > math.pi then
+		angle -= 2 * math.pi
+	end
+	if math.abs(angle) < 1e-9 then
+		return Vector3.zero
+	end
+	return axis.Unit * angle
+end
+
+local function rotExp(v: Vector3): CFrame
+	local a = v.Magnitude
+	if a < 1e-9 then
+		return CFrame.identity
+	end
+	return CFrame.fromAxisAngle(v / a, a)
+end
+
+-- Decays (x, v) toward zero over dt (critically damped, half-life h).
+local function decay(x: Vector3, v: Vector3, h: number, dt: number): (Vector3, Vector3)
+	local y = (2 * LN2) / math.max(h, 1e-4)
+	local e = math.exp(-y * dt)
+	local j1 = v + x * y
+	return (x + j1 * dt) * e, (v - j1 * (y * dt)) * e
+end
+
+local Inertializer = {}
+Inertializer.__index = Inertializer
+
+function Inertializer.new()
+	return setmetatable({
+		off = nil, -- joint -> { r, w, p, v }
+		halfLife = 0.05,
+		pending = 0,
+		prev = nil, -- pose shown last frame
+		vel = {}, -- its velocity: joint -> { w, v }
+		raw0 = nil, -- new target at the switch (its velocity is removed one frame later)
+	}, Inertializer)
+end
+
+function Inertializer:trigger(halfLife: number)
+	self.pending = if self.pending > 0 then math.min(self.pending, halfLife) else halfLife
+end
+
+function Inertializer:apply(pose: { [string]: CFrame }, dt: number): { [string]: CFrame }
+	local prev = self.prev
+	if self.pending > 0 and prev then
+		self.halfLife = self.pending
+		self.off = {}
+		for j, t in pairs(pose) do
+			local d = prev[j]
+			if not INERT_SKIP[j] and d then
+				local vel = self.vel[j]
+				self.off[j] = {
+					r = rotLog(d.Rotation * t.Rotation:Inverse()),
+					w = if vel then vel.w else Vector3.zero,
+					p = d.Position - t.Position,
+					v = if vel then vel.v else Vector3.zero,
+				}
+			end
+		end
+		self.raw0 = table.clone(pose) -- the player reuses its result table
+	elseif self.raw0 and self.off and dt > 0 then
+		for j, o in pairs(self.off) do
+			local a, b = self.raw0[j], pose[j]
+			if a and b then
+				o.w -= rotLog(b.Rotation * a.Rotation:Inverse()) / dt
+				o.v -= (b.Position - a.Position) / dt
+			end
+		end
+		self.raw0 = nil
+	end
+	self.pending = 0
+	local out = pose
+	if self.off then
+		out = table.clone(pose)
+		local live = false
+		for j, o in pairs(self.off) do
+			local t = pose[j]
+			if t then
+				o.r, o.w = decay(o.r, o.w, self.halfLife, dt)
+				o.p, o.v = decay(o.p, o.v, self.halfLife, dt)
+				out[j] = CFrame.new(t.Position + o.p) * rotExp(o.r) * t.Rotation
+				if o.r.Magnitude > 1e-4 or o.p.Magnitude > 1e-4 or o.w.Magnitude > 1e-3 or o.v.Magnitude > 1e-3 then
+					live = true
+				end
+			end
+		end
+		if not live and not self.raw0 then
+			self.off = nil
+		end
+	end
+	if prev and dt > 0 then
+		for j, t in pairs(out) do
+			local d = prev[j]
+			if not INERT_SKIP[j] and d then
+				self.vel[j] = { w = rotLog(t.Rotation * d.Rotation:Inverse()) / dt, v = (t.Position - d.Position) / dt }
+			end
+		end
+	end
+	if dt > 0 or not prev then
+		self.prev = table.clone(out)
+	end
+	return out
+end
+
+-- An action's requested fade time -> inertialization half-life.
+local function blendHalfLife(fade: number): number
+	return math.max(0.02, fade * 0.55)
+end
+
 local function jointNames(rig)
 	local names = {}
 	for _, j in ipairs(rig.joints) do
@@ -71,6 +194,8 @@ function CharacterAnimator.new(rig)
 	self.prevYaw = nil
 	self.prevSpeed = 0
 	self.legLength = 1.83
+	self.inert = Inertializer.new()
+	self.lastDt = 0
 	self.wasGrounded = true
 	self.state = { speed = 0, vy = 0, grounded = true, crouch = false, armed = false, yaw = 0 }
 	self.player:onMarker(function(track, marker)
@@ -108,13 +233,19 @@ function CharacterAnimator:play(name: string, opts)
 	local o = opts or {}
 	local layer = o.layer
 		or (if clip.additive then LAYER.ADDITIVE elseif clip.meta.overlay then LAYER.OVERLAY else LAYER.ACTION)
-	if layer == LAYER.ACTION and self.action and not self.action.stopping then
-		self.action:stop(o.fadeIn or 0.08)
+	local fadeIn = o.fadeIn or (if layer == LAYER.ADDITIVE then 0.02 else 0.08)
+	-- Full-body actions switch instantly and are inertialized (see Inertializer).
+	local inertial = layer == LAYER.ACTION
+	if inertial then
+		if self.action and not self.action.stopping then
+			self.action:stop(0)
+		end
+		self.inert:trigger(blendHalfLife(fadeIn))
 	end
 	local track = self.player:play(clip, {
 		layer = layer,
-		fadeIn = o.fadeIn or (if layer == LAYER.ADDITIVE then 0.02 else 0.08),
-		fadeOut = o.fadeOut or 0.15,
+		fadeIn = if inertial then 0 else fadeIn,
+		fadeOut = if inertial then 0 else (o.fadeOut or 0.15),
 		speed = o.speed or 1,
 		hold = o.hold or false,
 		loop = o.loop,
@@ -123,6 +254,7 @@ function CharacterAnimator:play(name: string, opts)
 	})
 	if layer == LAYER.ACTION then
 		self.action = track
+		track.endBlend = blendHalfLife(o.fadeOut or 0.15)
 	end
 	if clip.meta.weapon then
 		self:emit("WeaponAttach", { to = clip.meta.weapon, initial = true }, track)
@@ -132,7 +264,8 @@ end
 
 function CharacterAnimator:stopAction(fade: number?)
 	if self.action then
-		self.action:stop(fade or 0.15)
+		self.action:stop(0)
+		self.inert:trigger(blendHalfLife(fade or 0.15))
 	end
 	self.action = nil
 end
@@ -256,7 +389,10 @@ function CharacterAnimator:update(dt: number, s)
 	end
 
 	self.player:update(adt)
-	if self.action and self.action.done then
+	self.lastDt = adt
+	if self.action and (self.action.done or self.action.stopping) then
+		-- Played to its end: hand back to locomotion through the inertializer.
+		self.inert:trigger(self.action.endBlend or blendHalfLife(0.15))
 		self.action = nil
 	end
 
@@ -279,13 +415,17 @@ end
 
 function CharacterAnimator:evaluate()
 	local pose = self.player:evaluate()
-	local root = pose.Root
-	if root then
+	if pose.Root then
 		-- Lean about the ground point under the root joint so the feet stay put.
 		local q = CFrame.Angles(rad(self.lean.pitch), 0, rad(self.lean.roll))
 		local c = Vector3.new(0, -self.legLength, 0)
 		local lean = CFrame.new(c - q:VectorToWorldSpace(c)) * q
-		root = lean * root
+		pose.Root = lean * pose.Root
+	end
+	pose = self.inert:apply(pose, self.lastDt)
+	self.lastDt = 0
+	local root = pose.Root
+	if root then
 		if self.freeze > 0 and self.freezeShake > 0 then
 			self.shakeSeed = (self.shakeSeed * 16807) % 2147483647
 			local r1 = self.shakeSeed / 2147483647 - 0.5

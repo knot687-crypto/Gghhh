@@ -73,6 +73,12 @@ export async function build(opts = {}) {
   const { bakeSwings } = await import('./combat-kit.mjs');
   for (const c of Object.values(clips)) {
     if (c.markers.some((m) => m.name === 'SwingStart')) c.swings = bakeSwings(c);
+    // Hit detection reads the swing that contains the HitStart marker (Combat/HitQuery).
+    for (const m of c.markers.filter((x) => x.name === 'HitStart' && !x.slam)) {
+      if (!(c.swings ?? []).some((sw) => m.t >= sw.t0 - 1e-3 && m.t <= sw.t1 + 1e-3)) {
+        throw new Error(`${c.name}: HitStart at ${m.t}s lies outside every SwingStart..SwingEnd window`);
+      }
+    }
   }
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(path.join(outDir, 'clips.json'), JSON.stringify(clips));

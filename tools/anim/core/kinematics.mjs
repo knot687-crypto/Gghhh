@@ -167,7 +167,9 @@ export function solve(pose, { rig = 'R15', params, goals, rest = 0.00015, restWe
       r = r2;
       cost = cost2;
       lambda = Math.max(lambda * 0.5, 1e-8);
-      if (gain < 1e-13 || dx.every((d) => Math.abs(d) < 1e-7)) break;
+      // Converged: a near Gauss-Newton step that no longer helps (large-lambda steps are tiny
+      // but not converged, so they don't count).
+      if (lambda < 1e-3 && (gain < 1e-13 || dx.every((d) => Math.abs(d) < 1e-7))) break;
     } else {
       params.forEach((pr, i) => set(pr, saved[i]));
       lambda *= 4;
@@ -346,8 +348,11 @@ export function sheathFrame(pose, rig = 'R15') {
   return mulXform(lt, { p: R.sheath.c0, q: eulerQuat(R.sheath.c0r) });
 }
 
+// Natural roll of the left hand around the scabbard (thumb on the guard, fingers wrapped).
+export const SCABBARD_ROLL = -162;
+
 // Rest a hand on the scabbard `along` studs down the weapon axis from the sheathed grip point.
-export function holdScabbard(pose, { side = 'Left', along = 0.75, roll = 0, rig = 'R15', wRot = 0.5 } = {}) {
+export function holdScabbard(pose, { side = 'Left', along = 0.75, roll = SCABBARD_ROLL, rig = 'R15', wRot = 0.5 } = {}) {
   const f = sheathFrame(pose, rig);
   const pos = (() => {
     const r = quatRotate(f.q, [0, along, 0]);

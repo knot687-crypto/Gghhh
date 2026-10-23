@@ -28,7 +28,12 @@ function Track:stop(fade: number?)
 		return
 	end
 	self.stopping = true
-	self:fadeTo(0, fade or self.fadeOut)
+	local f = fade or self.fadeOut
+	self:fadeTo(0, f)
+	-- A cut takes effect at once (even mid-update), so the next evaluation never mixes it in.
+	if f <= 0 then
+		self.weight = 0
+	end
 end
 
 function Track:isActive(): boolean

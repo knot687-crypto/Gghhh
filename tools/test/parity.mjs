@@ -150,7 +150,7 @@ for (const row of jsOut) {
   const diff = Math.hypot(...a.map((x, i) => x - b[i]));
   const sum = Math.hypot(...a.map((x, i) => x + b[i]));
   const dq = 4 * Math.atan2(diff, sum);
-  if (dp > maxP) maxP = dp;
+  if (dp > maxP) { maxP = dp; if (process.env.PARITY_VERBOSE) console.log(`  pos ${dp.toExponential(2)} at frame ${f} ${name}`); }
   if (process.env.PARITY_VERBOSE && dq > 1e-4) console.log(`  frame ${f} ${name}: rot ${((dq * 180) / Math.PI).toFixed(4)} deg`);
   if (dq > maxQ) {
     maxQ = dq;

@@ -232,6 +232,19 @@ function C.Lerp(a, b, t)
 	return fromQuat(a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t, qx / n, qy / n, qz / n, qw / n)
 end
 
+-- Roblox returns the rotation's unit axis and its angle in [0, pi].
+function C.ToAxisAngle(m)
+	local qx, qy, qz, qw = toQuat(m)
+	if qw < 0 then
+		qx, qy, qz, qw = -qx, -qy, -qz, -qw
+	end
+	local s = sqrt(qx * qx + qy * qy + qz * qz)
+	if s < 1e-12 then
+		return vec(1, 0, 0), 0
+	end
+	return vec(qx / s, qy / s, qz / s), 2 * math.atan2(s, qw)
+end
+
 local function angles(rx, ry, rz)
 	local cx, sx, cy, sy, cz, sz = cos(rx), sin(rx), cos(ry), sin(ry), cos(rz), sin(rz)
 	local X = cf(0, 0, 0, 1, 0, 0, 0, cx, -sx, 0, sx, cx)
@@ -258,6 +271,11 @@ CFrame = {
 	end,
 	fromQuat = fromQuat,
 	toQuat = toQuat,
+	fromAxisAngle = function(v, a)
+		local m = sqrt(v[1] * v[1] + v[2] * v[2] + v[3] * v[3])
+		local k = sin(a / 2) / m
+		return fromQuat(0, 0, 0, v[1] * k, v[2] * k, v[3] * k, cos(a / 2))
+	end,
 }
 
 -- ------------------------------------------------------------------ instances & require

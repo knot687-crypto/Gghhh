@@ -337,10 +337,27 @@ export function perform(c, { path, beats, feet = {}, rate = 120, times = [], two
     return keys.length ? new Curve(keys) : null;
   })();
 
-  // Solve the arms for one hold at time t.
+  // Solve the arms for one hold at time t. Warm-started solves keep the arms continuous, but can
+  // get stuck in a twisted local solution when the target swings far; when the result misses
+  // the katana's path, solve again from a neutral seed and keep whichever fits better.
+  const bladeMiss = (p, frame, two) => {
+    const w = fk(p);
+    const g = w.Weapon.p;
+    return Math.hypot(g[0] - frame.grip[0], g[1] - frame.grip[1], g[2] - frame.grip[2]) + (two ? 2 * (p._twoHandErr ?? 0) : 0);
+  };
+  const neutralArms = (p) => p.omit(ARMS);
+  const wieldBest = (p, frame, two) => {
+    const warm = wield(p, frame, { two });
+    const missWarm = bladeMiss(warm, frame, two);
+    if (missWarm < (two ? 0.03 : 0.01)) return warm;
+    let seed = neutralArms(p);
+    if (!two && p.j.LeftShoulder) seed = seed.with({ LeftShoulder: p.j.LeftShoulder, LeftElbow: p.j.LeftElbow, LeftWrist: p.j.LeftWrist });
+    const cold = wield(seed, frame, { two });
+    return bladeMiss(cold, frame, two) < missWarm - 0.005 ? cold : warm;
+  };
   const solveHold = (p, hold, frame, t) => {
-    if (hold.left === 'two') return wield(p, frame, { two: true });
-    if (hold.right === 'blade') p = wield(p, frame, { two: false });
+    if (hold.left === 'two') return wieldBest(p, frame, true);
+    if (hold.right === 'blade') p = wieldBest(p, frame, false);
     else if (hold.right === 'free' && rightCurve) p = p.with(unflatArm(RIGHT_ARM, rightCurve.at(t)));
     if (hold.left === 'free' && leftCurve) p = p.with(unflatArm(LEFT_ARM, leftCurve.at(t)));
     else if (hold.left === 'scabbard' && scabCurve) {
@@ -368,6 +385,10 @@ export function perform(c, { path, beats, feet = {}, rate = 120, times = [], two
   let worstGripAt = 0;
   let worstFoot = 0;
   let worstFootAt = 0;
+  const diag = [];
+  let worstWeapon = 0;
+  let worstWeaponAt = 0;
+  let worstWeaponErr = 0;
   const out = [];
   for (const t of sampleTimes) {
     const j = {};
@@ -433,6 +454,19 @@ export function perform(c, { path, beats, feet = {}, rate = 120, times = [], two
         worstGrip = p._twoHandErr;
         worstGripAt = t;
       }
+      // Is the katana where the frame says (only meaningful while the right hand wields it)?
+      const hold = t <= A.t ? A : t >= B.t ? B : A;
+      if (frame && hold.right === 'blade' && (B.right === 'blade' || t <= A.t)) {
+        const wp = fk(p).Weapon.p;
+        const err = Math.hypot(wp[0] - frame.grip[0], wp[1] - frame.grip[1], wp[2] - frame.grip[2]);
+        const tol = hold.left === 'two' ? 0.15 : 0.04;
+        if (process.env.PERFORM_DIAG && (process.env.PERFORM_DIAG === '1' || process.env.PERFORM_DIAG === c.name)) diag.push([t, err, hold.left]);
+        if (err - tol > worstWeapon) {
+          worstWeapon = err - tol;
+          worstWeaponAt = t;
+          worstWeaponErr = err;
+        }
+      }
     }
     delete p._twoHandErr;
     c.key(t, p);
@@ -441,5 +475,10 @@ export function perform(c, { path, beats, feet = {}, rate = 120, times = [], two
   }
   if (worstGrip > 0.06) console.warn(`  ${c.name}: two-hand grip off by ${worstGrip.toFixed(3)} at ${worstGripAt.toFixed(3)}s`);
   if (worstFoot > 0.03) console.warn(`  ${c.name}: foot off its plant by ${worstFoot.toFixed(3)} at ${worstFootAt.toFixed(3)}s`);
+  if (diag.length) {
+    const rows = diag.filter((d, i) => i % 3 === 0 || d[1] > 0.2).map(([t, e, l]) => `${t.toFixed(3)}:${e.toFixed(2)}${l === 'two' ? '' : '*'}`);
+    console.warn(`  ${c.name} weapon err: ${rows.join(' ')}`);
+  }
+  if (worstWeapon > 0) console.warn(`  ${c.name}: hand can't put the katana on its path (off by ${worstWeaponErr.toFixed(3)} at ${worstWeaponAt.toFixed(3)}s)`);
   return out;
 }
