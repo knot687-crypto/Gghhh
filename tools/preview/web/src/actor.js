@@ -6,6 +6,7 @@ import { evalChannel } from '/anim/core/curve.mjs';
 import { R15 } from '/anim/core/rig.mjs';
 import { ATTACKS, DEFENSE, MOVE } from '/anim/tuning.mjs';
 import { buildAvatar, STYLES } from './avatar.js';
+import { ClothTails } from './cloth.js';
 
 const ROOT_H = 2.83; // HumanoidRootPart centre above the ground
 const UP = new THREE.Vector3(0, 1, 0);
@@ -29,6 +30,8 @@ export class Actor {
     this.style = style;
     this.avatar = buildAvatar({ rig: R15, style: STYLES[style], weapon, scabbard: weapon });
     app.scene.add(this.avatar.root);
+    const look = STYLES[style];
+    this.cloth = look.cloth ? new ClothTails(this.avatar, { sash: look.sash, band: look.band ?? look.sash }, app.scene) : null;
     this.anim = new CharacterAnimator(app.clips);
     this.pos = new THREE.Vector3(position[0], position[1] + ROOT_H, position[2]);
     this.yaw = (yaw * Math.PI) / 180;
@@ -685,6 +688,8 @@ export class Actor {
     this.avatar.root.position.copy(this.pos);
     this.avatar.root.rotation.set(0, this.yaw, 0);
     this.avatar.applyPose(pose);
+    // Secondary motion (cloth) freezes with the body during hit-stop.
+    this.cloth?.update(this.anim.freeze > 0 ? dt * 0.02 : dt);
 
     // Blade glow and hit flash.
     this.glow += (this.glowTarget - this.glow) * Math.min(1, dt * 18);

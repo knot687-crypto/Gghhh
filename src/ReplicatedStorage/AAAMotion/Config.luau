@@ -68,6 +68,15 @@ return {
 		lodDistance = 160,
 	},
 
+	-- Simulated headband + obi sash tails (secondary motion) on player characters and the rival.
+	-- Per character, the AAA_ClothSash / AAA_ClothBand (Color3) attributes override the colors and
+	-- AAA_NoCloth = true turns it off.
+	Cloth = {
+		enabled = true,
+		sash = "#a3242c",
+		band = "#b8262f",
+	},
+
 	Combat = {
 		comboBuffer = 0.35,
 		lungeCooldown = 1.1,

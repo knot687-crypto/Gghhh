@@ -88,6 +88,10 @@ local function build(kind, position: Vector3, yaw: number): Model?
 	model:SetAttribute("AAA_Crouch", false)
 	model:SetAttribute("AAA_Blocking", false)
 	model:SetAttribute("AAA_Kind", kind.kind)
+	if kind.kind == "rival" then
+		model:SetAttribute("AAA_ClothSash", Color3.fromRGB(17, 17, 17))
+		model:SetAttribute("AAA_ClothBand", Color3.fromRGB(142, 27, 34))
+	end
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
 	local height = hum.HipHeight + root.Size.Y / 2
 	model:PivotTo(CFrame.new(position + Vector3.new(0, height, 0)) * CFrame.Angles(0, math.rad(yaw), 0))

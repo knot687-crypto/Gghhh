@@ -4,6 +4,7 @@
 	Frame order
 		PreSimulation   LocalController (abilities, root motion)  ->  every CharacterDriver
 		                (animation, Motor6D.Transform, cosmetic VFX)
+		PostSimulation  every CharacterDriver: secondary motion (cloth) on the posed parts
 		RenderStep      Viewmodel (Camera)  ->  CameraController (Camera + 1)  ->  HUD
 ]]
 
@@ -83,6 +84,10 @@ RunService.PreSimulation:Connect(function(dt)
 		controller:step(dt)
 	end
 	Drivers.update(dt, ts)
+end)
+
+RunService.PostSimulation:Connect(function(dt)
+	Drivers.postUpdate(dt, CameraFX.timeScale())
 end)
 
 RunService:BindToRenderStep("AAAMotionViewmodel", Enum.RenderPriority.Camera.Value, function(dt)

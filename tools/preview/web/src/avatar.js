@@ -12,11 +12,13 @@ export const STYLES = {
     skin: 0xe9b48f,
     jacket: 0x34466f,
     sash: 0xa3242c,
+    band: 0xb8262f,
     pants: 0x3b3f4a,
     shoes: 0x1f2126,
     gloves: 0x2a2d35,
     face: true,
     torsoDecal: true,
+    cloth: true,
   },
   dummy: {
     wood: true,
@@ -33,12 +35,14 @@ export const STYLES = {
     skin: 0xc58c66,
     jacket: 0x4a1418,
     sash: 0x111111,
+    band: 0x8e1b22,
     pants: 0x1c1c20,
     shoes: 0x0d0d0f,
     gloves: 0x111114,
     face: true,
     torsoDecal: true,
     trim: '#c9a227',
+    cloth: true,
   },
 };
 

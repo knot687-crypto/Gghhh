@@ -21,6 +21,7 @@ local Weapon = require(AAAMotion.Combat.Weapon)
 local Effects = require(AAAMotion.VFX.Effects)
 local Particles = require(AAAMotion.VFX.Particles)
 local SwingRibbon = require(AAAMotion.VFX.SwingRibbon)
+local ClothTails = require(AAAMotion.VFX.ClothTails)
 local Afterimage = require(AAAMotion.VFX.Afterimage)
 local CameraFX = require(AAAMotion.VFX.CameraFX)
 local Config = require(AAAMotion.Config)
@@ -70,6 +71,10 @@ function CharacterDriver.new(model: Model, isLocal: boolean)
 	self.rayParams.RespectCanCollide = true
 
 	self.weapon = Weapon.new({ scabbard = true, name = model.Name .. "_Katana" })
+	local kind = model:GetAttribute("AAA_Kind")
+	if Config.Cloth.enabled and model:GetAttribute("AAA_NoCloth") ~= true and kind ~= "training" and kind ~= "guard" then
+		self.cloth = ClothTails.new(model, ClothTails.colorsFor(model), self.posScale, Weapon.localFolder())
+	end
 	self.armed = model:GetAttribute("AAA_Armed") == true
 	self.weapon:attach(model, if self.armed then "hand" else "sheath", self.posScale)
 	self.state.armed = self.armed
@@ -100,6 +105,9 @@ function CharacterDriver:destroy()
 	end
 	self.binding:reset()
 	self.weapon:destroy()
+	if self.cloth then
+		self.cloth:destroy()
+	end
 	if self.highlight then
 		self.highlight:Destroy()
 	end
@@ -480,6 +488,19 @@ function CharacterDriver:update(dt: number, timeScale: number)
 end
 
 -- First-person: hide the body (and its weapon) locally; the viewmodel takes over.
+
+-- After physics (the parts show this frame's pose): secondary motion.
+function CharacterDriver:postUpdate(dt: number, timeScale: number)
+	local cloth = self.cloth
+	if not cloth then
+		return
+	end
+	local cam = workspace.CurrentCamera
+	local far = cam ~= nil and (cam.CFrame.Position - self.root.Position).Magnitude > Config.Graphics.lodDistance
+	cloth:setHidden(self.fpHidden or far or not self.root.Parent)
+	cloth:update(dt * timeScale * (if self.anim.freeze > 0 then 0.02 else 1))
+end
+
 function CharacterDriver:setFirstPerson(on: boolean)
 	self.fpHidden = on
 	local t = if on then 1 else 0

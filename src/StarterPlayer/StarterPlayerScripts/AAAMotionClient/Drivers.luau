@@ -108,4 +108,10 @@ function Drivers.update(dt: number, timeScale: number)
 	end
 end
 
+function Drivers.postUpdate(dt: number, timeScale: number)
+	for _, d in pairs(byModel) do
+		d:postUpdate(dt, timeScale)
+	end
+end
+
 return Drivers

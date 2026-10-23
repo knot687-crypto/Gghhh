@@ -182,4 +182,12 @@ const hits = execFileSync(runner, [path.join(ROOT, 'test/luau/hitquery.luau'), p
 fs.rmSync(tmp2, { recursive: true, force: true });
 const hitsOk = hits.includes('HITQUERY OK');
 console.log(hits.split('\n').filter((l) => l.startsWith('FAIL') || l.startsWith('HITQUERY')).join('\n'));
-process.exit(ok && hitsOk ? 0 : 1);
+
+// Cloth tails (VFX/ClothTails) on a stub rig.
+const tmp3 = fs.mkdtempSync(path.join(os.tmpdir(), 'aaa-cloth-'));
+fs.writeFileSync(path.join(tmp3, 'manifest.txt'), manifest.join('\n'));
+const cloth = execFileSync(runner, [path.join(ROOT, 'test/luau/cloth.luau'), path.join(ROOT, 'test/luau/mock.luau'), SRC, path.join(tmp3, 'manifest.txt')]).toString();
+fs.rmSync(tmp3, { recursive: true, force: true });
+const clothOk = cloth.includes('CLOTH OK');
+console.log(cloth.trim());
+process.exit(ok && hitsOk && clothOk ? 0 : 1);

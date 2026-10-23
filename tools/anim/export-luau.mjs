@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { build } from './build.mjs';
 import { EASE_NAMES } from './core/easing.mjs';
 import { R15, VM } from './core/rig.mjs';
+import { CLOTH } from './cloth.mjs';
 import { LAYOUT } from './layout.mjs';
 import { ATTACKS, DEFENSE, MOVE } from './tuning.mjs';
 import { COLORS, EFFECTS, PARTICLES, RIBBON, SHAKES } from './vfx.mjs';
@@ -110,6 +111,7 @@ export async function exportLuau() {
   write('Tuning.luau', `${HEADER}return ${lua({ MOVE, ATTACKS, DEFENSE })}\n`);
   write('VFXRecipes.luau', `${HEADER}return ${lua({ COLORS, PARTICLES, EFFECTS, RIBBON, SHAKES })}\n`);
   write('Layout.luau', `${HEADER}return ${lua(LAYOUT)}\n`);
+  write('Cloth.luau', `${HEADER}return ${lua(CLOTH)}\n`);
   write('Weapon.luau', `${HEADER}return ${lua({ KATANA, POINTS: KATANA_POINTS, VM_SCALE: VM_WEAPON_SCALE })}\n`);
   return clips;
 }
