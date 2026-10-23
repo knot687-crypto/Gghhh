@@ -1,7 +1,7 @@
 # AAA Motion — movement & katana combat for Roblox
 
 A complete third- and first-person animation pack for Roblox with the gameplay and VFX to drive it:
-76 animations, a particle/ribbon/camera VFX system, a movement controller (dash, slide, wall run,
+78 animations, simulated cloth (headband + sash tails), a particle/ribbon/camera VFX system, a movement controller (dash, slide, wall run,
 vault, mantle, double jump …) and a server-authoritative katana combat system (combo, charged heavy,
 lunge, aerial slam, block, parry, guard break), plus a demo arena with sparring dummies and an AI
 rival.
@@ -38,7 +38,7 @@ Mobile gets on-screen buttons for every action.
 
 ## What's in the pack
 
-**Third person (52 clips)** — Idle, Walk, Run, Sprint, CrouchIdle, CrouchWalk, JumpStart, Rise,
+**Third person (54 clips)** — Idle, Walk, Run, Sprint, RunStopLeft/Right, CrouchIdle, CrouchWalk, JumpStart, Rise,
 Fall, DoubleJump, LandLight, LandHeavy, LandRoll, DashForward/Back/Left/Right, AirDash, SlideEnter,
 Slide, WallRunLeft/Right, WallJumpLeft/Right, Vault, Mantle, CombatIdle, ArmedWalk, ArmedRun,
 Light1–4, HeavyCharge, HeavyRelease, AerialSlam, AerialSlamLand, Lunge, Block, BlockHit, Parry,
@@ -69,6 +69,17 @@ the IK re-solved every sample, then curve-reduced. That gives every strike:
 The build checks every attack: planted feet must stay within 3 cm of their marks, the hands must
 be able to put the blade on its arc, and every `HitStart` must sit inside a swing.
 
+**Secondary motion** — a hachimaki headband and the obi knot each trail two cloth tails,
+simulated at runtime (inextensible follow-the-leader chains with drag, flutter and body
+colliders): they hang at rest, stream behind sprints and dashes, whip around spins and settle
+after landings. On by default for players and the rival (`Config.Cloth`); per character the
+`AAA_ClothSash` / `AAA_ClothBand` attributes set the colors and `AAA_NoCloth` turns it off.
+
+**Run stops** — letting go of the stick while running plays a stop instead of sliding to idle:
+the next foot to land brakes far ahead with the body counter-leaning over it, the other foot
+catches the momentum and the body settles into the idle. Root motion is scaled to the entry
+speed, and moving again cuts the stop short.
+
 **VFX** — hit sparks, slash shards, glow and embers; cross flashes; shockwave rings; dust rings,
 debris and rock eruptions with ground cracks; dash wind bursts and afterimages; slide sparks;
 footstep dust; parry stars; blade edge glow; swept slash ribbons; camera trauma shake, FOV kicks,
@@ -77,7 +88,7 @@ anime impact frames, screen flashes, parry slow motion and speed lines. All reci
 
 ## Using the animations without the runtime
 
-`export/AAAMotionAnimations.rbxm` contains all 76 clips as **KeyframeSequences** (folders
+`export/AAAMotionAnimations.rbxm` contains all 78 clips as **KeyframeSequences** (folders
 `ThirdPerson` and `FirstPerson`). Insert it into Studio, then publish the ones you want with the
 Animation Editor (load the sequence onto an R15 rig → *Publish to Roblox*) and play them with a
 normal `Animator`. Notes:
@@ -156,6 +167,9 @@ Rendering uses headless Chromium + three.js + ffmpeg; `render.mjs` writes finish
   jumps, dash, combo with hit-stop and inertialized transitions, overlays, charge/release with
   the leap's visual lift, block, flinch, vault) agree within 0.00015° and 0.00001 studs, with an
   identical marker/event stream. Hit geometry checks pass.
+* Cloth check (`test/luau/cloth.luau`, run by the parity test): the Roblox cloth module on a stub
+  rig that idles, sprints, dashes and stops — tails hang, stream behind motion, settle again,
+  stay finite and inextensible, and restart cleanly after a teleport.
 * KeyframeSequence export round trip (`test/kfs-roundtrip.mjs`: parse the exported sequences,
   interpolate like Roblox, compare with the source curves at 240 Hz): within 0.005 studs and
   0.7° everywhere, including the fastest strikes.
