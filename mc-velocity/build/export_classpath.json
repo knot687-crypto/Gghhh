@@ -1,0 +1,14 @@
+{
+  "projectPath": ":",
+  "classpaths": {
+    "test": [
+      "/home/user/Gghhh/mc-velocity/build/classes/java/test",
+      "/home/user/Gghhh/mc-velocity/build/resources/test"
+    ],
+    "main": [
+      "/home/user/Gghhh/mc-velocity/build/classes/java/main",
+      "/home/user/Gghhh/mc-velocity/build/resources/main",
+      "/home/user/Gghhh/mc-velocity/build/devlibs/velo-1.0.0-dev.jar"
+    ]
+  }
+}
