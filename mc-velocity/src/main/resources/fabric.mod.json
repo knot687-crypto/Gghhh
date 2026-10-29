@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1, "id": "velo", "version": "1.0.0", "name": "Velo",
+  "environment": "client",
+  "entrypoints": { "client": ["dev.secret.velo.Velo"] },
+  "mixins": ["velo.mixins.json"],
+  "depends": { "fabricloader": ">=0.16", "minecraft": "1.21.11", "fabric-api": "*" }
+}
