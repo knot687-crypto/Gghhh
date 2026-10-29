@@ -1,4 +1,0 @@
-{
-  "required": true, "package": "dev.secret.velo.mixin", "compatibilityLevel": "JAVA_21",
-  "client": ["VelocityPacketMixin"], "injectors": { "defaultRequire": 1 }
-}
